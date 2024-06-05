@@ -1,6 +1,7 @@
 using BokLoftet.Data;
 using BokLoftet.Models;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
 
@@ -10,21 +11,36 @@ namespace BokLoftet.Test
     {
         private ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly DbContextOptions<ApplicationDbContext> _options;
 
-        public BokLoftetTests(UserManager<ApplicationUser> userManager)
+        public BokLoftetTests()
         {
-            _context = CreateDbContext();
-            _userManager = userManager;
-        }
 
-        private ApplicationDbContext CreateDbContext()
-        {
-            var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            _options = new DbContextOptionsBuilder<ApplicationDbContext>()
                 .UseInMemoryDatabase(databaseName: "TestDb")
                 .Options;
 
-            return new ApplicationDbContext(options);
+
+            _context = new ApplicationDbContext(_options);
+
+                _context.Database.EnsureDeleted();
+                _context.Database.EnsureCreated();
+
+            //var context = new ApplicationDbContext(_options);
+
+            var store = new UserStore<ApplicationUser>(_context);
+            var hasher = new PasswordHasher<ApplicationUser>();
+            var validators = new[] { new UserValidator<ApplicationUser>() };
+
+            _userManager = new UserManager<ApplicationUser>(store, null, hasher, validators, null, null, null, null, null);
+
+            var roleStore = new RoleStore<IdentityRole>(_context);
+            var _roleManager = new RoleManager<IdentityRole>(roleStore, null, null, null, null);
+
+            SeedData(_userManager, _roleManager).Wait();
         }
+
+       
 
         [Fact]
         public void DB_CheckIfCategoryDeckareExists()
@@ -33,7 +49,7 @@ namespace BokLoftet.Test
 
             Assert.NotNull(category);
 
-            // Arrage
+            // Arrange
             //_context.Categories.Add(new Category { Name = "Test" });
             //_context.SaveChanges();
 
@@ -47,7 +63,21 @@ namespace BokLoftet.Test
             //Assert.NotNull(test1);
         }
 
-        private async Task SeedData()
+        [Fact]
+        public void DB_TestFindUserByEmail()
+        {
+            //arrange
+            
+            //act
+            var user = _userManager.Users.FirstOrDefault(u => u.Email == "janneloffe@karlsson.se");
+            //assert
+            Assert.Same("janneloffe@karlsson.se", user.Email);
+
+
+        }
+
+
+        private async Task SeedData(UserManager<ApplicationUser> _userManager, RoleManager<IdentityRole> _roleManager)
         {
             // Categories
             List<Category> categories = [];
@@ -65,7 +95,7 @@ namespace BokLoftet.Test
             categories.Add(childrensBooks);
 
             _context.Categories.AddRange(categories);
-            
+
             // Books
             List<Book> books = [];
 
@@ -101,6 +131,20 @@ namespace BokLoftet.Test
 
             _context.Books.AddRange(books);
 
+
+            //Roles
+        
+            var roles = new[] { "Customer", "Admin" };
+
+            foreach (var role in roles)
+            {
+                if (!await _roleManager.RoleExistsAsync(role))
+                {
+                    await _roleManager.CreateAsync(new IdentityRole(role));
+                }
+            }
+
+
             //User
 
             ApplicationUser user1 = new()
@@ -129,29 +173,17 @@ namespace BokLoftet.Test
                 UserName = "greta@bokloftet.se"
 
             };
-
-
             await _userManager.CreateAsync(user2, "Test123!");
             await _userManager.AddToRoleAsync(user2, "Admin");
 
             _context.SaveChanges();
         }
 
-        //private async Task Initial()
-        //{
-        //    await _context.Database.EnsureCreatedAsync();
-        //    SeedData();
-        //}
-
-        //public void Dispose()
-        //{
-        //    _context.Database.EnsureDeleted();
-        //}
 
         public async Task InitializeAsync()
         {
             await _context.Database.EnsureCreatedAsync();
-            await SeedData();
+          
         }
 
         public async Task DisposeAsync()
