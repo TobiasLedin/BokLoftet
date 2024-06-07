@@ -2,10 +2,15 @@ using BokLoftet.Controllers;
 using BokLoftet.Data;
 using BokLoftet.Models;
 using BokLoftet.ViewModels;
+using FakeItEasy;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.Build.Experimental.ProjectCache;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using System.Collections.Generic;
 using System.Net;
@@ -22,6 +27,8 @@ namespace BokLoftet.Test
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
+        private readonly IUserStore<ApplicationUser> _userStore;
+        private readonly IAuthenticationService _authService;
 
         public DbTests()
         {
@@ -34,6 +41,8 @@ namespace BokLoftet.Test
             _userManager = _serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
             _roleManager = _serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
             _signInManager = _serviceProvider.GetRequiredService<SignInManager<ApplicationUser>>();
+            _userStore = _serviceProvider.GetRequiredService<IUserStore<ApplicationUser>>();
+            _authService = _serviceProvider.GetRequiredService<IAuthenticationService>();
      
         }
 
@@ -47,7 +56,76 @@ namespace BokLoftet.Test
 
         }
 
-        
+        [Fact]
+        public async Task Login_IfLoginCredentialsValid_RedirectToIndex()
+        {
+            // Arrange
+
+            // Valid login credentials
+            string email = "janneloffe@karlsson.se";
+            string password = "Test123!";
+
+            var loginCredentials = new LoginViewModel { Email = email, Password = password };
+
+
+            var fakeHttpContext = A.Fake<HttpContext>();
+
+            var user = new ClaimsPrincipal(new ClaimsIdentity(new Claim[]
+            {
+                new Claim(ClaimTypes.Name, email)
+            }, "mock"));
+
+            A.CallTo(() => fakeHttpContext.User).Returns(user);
+            
+            var authService = A.Fake<IAuthenticationService>();
+            A.CallTo(() => authService.SignInAsync(A<HttpContext>._, A<string>._, A<ClaimsPrincipal>._, A<AuthenticationProperties>._))
+                .Returns(Task.CompletedTask);
+            
+            fakeHttpContext.RequestServices = new ServiceCollection()
+                .AddSingleton<IAuthenticationService>(authService)
+                .BuildServiceProvider();
+
+
+            _signInManager.Context = fakeHttpContext;
+
+
+            var result = await _signInManager.PasswordSignInAsync(email, password, false, false);
+
+            Assert.True(result.Succeeded);
+
+            
+
+            //var controllerContext = new ControllerContext
+            //{
+            //    HttpContext = fakeHttpContext
+            //};
+
+
+            //// Controller responsible for login
+            //var controller = new AccountController(_userManager, _userStore, _signInManager)
+            //{
+            //    ControllerContext = controllerContext
+            //};
+
+            //// Act
+
+            //var result = await controller.Login(loginCredentials);
+            //var resultType = result.GetType();
+
+            //// Assert
+            //Assert.IsType<RedirectToActionResult>(resultType);
+        }
+
+        //[Fact]
+        //public async Task Login_IfLoginCredentialsInvalid_ReturnFaultMessage()
+        //{
+        //    // Arrange
+
+        //    // Act
+
+        //    // Assert
+        //}
+
 
         public async Task InitializeAsync()
         {
