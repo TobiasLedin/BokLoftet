@@ -73,13 +73,13 @@ namespace BokLoftet.Test
             }, "mock"));
 
             A.CallTo(() => fakeHttpContext.User).Returns(user);
-            
+
 
             // Mock IAuthenticationService
             var authService = A.Fake<IAuthenticationService>();
             A.CallTo(() => authService.SignInAsync(A<HttpContext>._, A<string>._, A<ClaimsPrincipal>._, A<AuthenticationProperties>._))
                 .Returns(Task.CompletedTask);
-            
+
             // Add mock IAuthenticationService service to mock HttpContext
             fakeHttpContext.RequestServices = new ServiceCollection()
                 .AddSingleton<IAuthenticationService>(authService)
@@ -142,6 +142,60 @@ namespace BokLoftet.Test
             Assert.False(result.Succeeded);
         }
 
+        [Fact]
+        public async Task Loan_IfCustomerHasNoActiveLoanOrders_DisplayMessage()
+        {
+            // Arrange
+            var customer = "janneloffe@karlsson.se";
+            string? message = null;
+
+
+            // Act
+            if (_context.Orders.Where(x => x.Customer.Email == customer).Any() is false) 
+            {
+                message = "Du har inga aktiva låneordrar";
+            }
+
+            // Assert
+            Assert.NotNull(message);
+        }
+
+        [Fact]
+        public async Task Loan_IfCustomerHasActiveLoanOrders_DisplayOrders()
+        {
+            // Arrange
+            var customer = "janneloffe@karlsson.se";
+
+            var order = new Order
+            {
+                Customer = _context.Users.First(x => x.Email == customer),
+                Books = new List<Book>
+                {
+                    _context.Books.First()
+                }
+            };
+
+            await _context.Orders.AddAsync(order);
+            _context.SaveChanges();
+
+            // Act
+            var orders = await _context.Orders.Where(x => x.Customer.Email == customer).ToListAsync();
+
+            // Assert
+            Assert.NotEmpty(orders);
+            Assert.Equal(orders.First().Books.First().Title, "Pippi Långstrump");
+        }
+
+        [Fact]
+        public async Task Loan_LoanOrdersShouldContainData_StartDateEndDateBookTitles()
+        {
+            // Arrange
+
+            // Act
+
+            // Assert
+        }
+       
 
         public async Task InitializeAsync()
         {
