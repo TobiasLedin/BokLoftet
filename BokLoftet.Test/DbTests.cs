@@ -1,5 +1,7 @@
+using BokLoftet.Controllers;
 using BokLoftet.Data;
 using BokLoftet.Models;
+using BokLoftet.ViewModels;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.TestHost;
@@ -16,6 +18,8 @@ namespace BokLoftet.Test
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly SignInManager<ApplicationUser> _signinManager;
+        private readonly IUserStore<ApplicationUser> _userStore;
 
         public DbTests()
         {
@@ -27,6 +31,8 @@ namespace BokLoftet.Test
             _context = _serviceProvider.GetRequiredService<ApplicationDbContext>();
             _userManager = _serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
             _roleManager = _serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+            _signinManager = _serviceProvider.GetRequiredService<SignInManager<ApplicationUser>>();
+            _userStore = _serviceProvider.GetRequiredService<IUserStore<ApplicationUser>>();
         }
 
 
@@ -39,7 +45,26 @@ namespace BokLoftet.Test
 
         }
 
-        
+        [Fact]
+        public async Task DB_TestLogin()
+        {
+            // Arrange
+            string email = "janneloffe@karlsson.se";
+            string password = "Test123!";
+
+            var loginCredentials = new LoginViewModel { Email = email, Password = password };
+
+            var controller = new AccountController(_userManager, _userStore, _signinManager);
+
+            // Act
+            var result = await controller.Login(loginCredentials);
+
+            result.
+
+            // Assert
+
+
+        }
 
         public async Task InitializeAsync()
         {
