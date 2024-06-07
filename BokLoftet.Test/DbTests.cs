@@ -8,10 +8,14 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Routing;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Build.Experimental.ProjectCache;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.VisualStudio.Web.CodeGenerators.Mvc.Templates.BlazorIdentity.Pages.Manage;
 using System.Collections.Generic;
 using System.Net;
 using System.Security.Claims;
@@ -73,13 +77,13 @@ namespace BokLoftet.Test
             }, "mock"));
 
             A.CallTo(() => fakeHttpContext.User).Returns(user);
-            
+
 
             // Mock IAuthenticationService
             var authService = A.Fake<IAuthenticationService>();
             A.CallTo(() => authService.SignInAsync(A<HttpContext>._, A<string>._, A<ClaimsPrincipal>._, A<AuthenticationProperties>._))
                 .Returns(Task.CompletedTask);
-            
+
             // Add mock IAuthenticationService service to mock HttpContext
             fakeHttpContext.RequestServices = new ServiceCollection()
                 .AddSingleton<IAuthenticationService>(authService)
@@ -143,6 +147,161 @@ namespace BokLoftet.Test
         }
 
 
+
+
+        //REGISTER new user tests (Peter)
+
+        //Acceptanskriterie:
+        // - Verifiera att en ny post lagras i AspNetUsers-tabellen med samma email.
+        [Fact]
+        public async Task Register_AssertNewUserIsSavedToDatabase_EqualsTrue()
+        {
+            //ARRANGE
+            var newExistingEmailUser = new RegisterViewModel()
+            {
+
+                FirstName = "Mario",
+                LastName = "Lemieux",
+                Email = "mario@lemiuex.com",
+                Adress = "Pittsburgh Avenue 2",
+                Phone = "412-642-PENS",
+                Password = "Mario123!",
+                ConfirmPassword = "Mario123!"
+            };
+
+
+            var controller = new AccountController(_userManager, _userStore, _signInManager);
+
+            //ACT
+            var result = await controller.RegisterAsync(newExistingEmailUser);
+            var user = await _userManager.FindByEmailAsync(newExistingEmailUser.Email);
+
+            //ASSERT
+
+            //check that user is found in database by ensuring it's not null.
+            Assert.NotNull(user);
+
+            //check that the email of the user found in the database matches the email of the new user.
+            Assert.Equal(newExistingEmailUser.Email, user.Email);
+
+
+
+
+
+            //other code
+            #region code that works if httpcontext is used in controller
+
+            ////Mock HttpContext
+            //var mockHttpContext = A.Fake<HttpContext>();
+            //A.CallTo(() => mockHttpContext.Request.Method).Returns("POST");
+
+            ////Mock TempDataDictionaryFactory
+            //var mockTempDataDictionaryFactory = A.Fake<ITempDataDictionaryFactory>();
+            //var mockTempDataDictionary = A.Fake<ITempDataDictionary>();
+
+            //A.CallTo(() => mockTempDataDictionaryFactory.GetTempData(A<HttpContext>.Ignored)).Returns(mockTempDataDictionary);
+
+            ////Mock IUrlHelperFactory
+
+            //var mockUrlHelperFactory = A.Fake<IUrlHelperFactory>();
+            //var mockUrlHelper = A.Fake<IUrlHelper>();
+
+            //A.CallTo(() => mockUrlHelperFactory.GetUrlHelper(A<ActionContext>.Ignored)).Returns(mockUrlHelper);
+
+            //var controller = new AccountController(_userManager, _userStore, _signInManager);
+            //controller.ControllerContext = new ControllerContext
+            //{
+            //    HttpContext = mockHttpContext,
+
+            //};
+            //controller.TempData = mockTempDataDictionary;
+            //controller.Url = mockUrlHelper;
+            //controller.ControllerContext.HttpContext.RequestServices = A.Fake<IServiceProvider>();
+
+            //A.CallTo(() => controller.ControllerContext.HttpContext.RequestServices.GetService(typeof(IUrlHelperFactory))).Returns(mockUrlHelperFactory);
+
+            #endregion
+
+
+        }
+
+
+        //Acceptanskriterie:
+        //- Email-adress måste vara unik.
+        [Fact]
+        public async Task Register_AssertNewRegisteredUserEmail_AlreadyExistsInDatabase_EqualsFalse()
+        {
+            //ARRANGE
+            var newUserWithExistingEmail = new RegisterViewModel()
+            {
+
+                FirstName = "Loffe2",
+                LastName = "Karlsson2",
+                Email = "janneloffe@karlsson.se",
+                Adress = "Andra Vägen 2",
+                Phone = "0771-123 455",
+                Password = "Loffe123!",
+                ConfirmPassword = "Loffe123!"
+            };
+
+            //create controller
+            var controller = new AccountController(_userManager, _userStore, _signInManager);
+
+            //ACT
+            var result = await controller.RegisterAsync(newUserWithExistingEmail);
+
+            //ASSERT
+
+            //check that we get a view returned since that is what is returned when the register process fails.
+            var viewResult = Assert.IsType<ViewResult>(result);
+
+            //check if modelstate contains email key (of key-value pair).
+            Assert.True(viewResult.ViewData.ModelState.ContainsKey(nameof(newUserWithExistingEmail.Email)));
+
+            //check if modelstate email key contains an error message stating e-mail already exists.
+            Assert.Contains("E-mail already exists.", viewResult.ViewData.ModelState[nameof(newUserWithExistingEmail.Email)].Errors.Select(e => e.ErrorMessage));
+        }
+
+
+
+        //Acceptanskriterie:
+        //- Lösenord måste innehålla minst en stor bokstav, ett specialtecken och en siffra.*/
+        [Fact]
+        public async Task Register_AssertNewUserPasswordIncludes_CapitalLetter_Number_And_Symbol_EqualsTrue()
+        {
+            //ARRANGE
+            var newUserWithPasswordToCheck = new RegisterViewModel()
+            {
+
+                FirstName = "Jaromir",
+                LastName = "Jagr",
+                Email = "jagr@penguins.com",
+                Adress = "Penguins Road 68",
+                Phone = "0771-534 455",
+                Password = "Jagr123!",
+                ConfirmPassword = "Jagr123!"
+            };
+
+            //create controller
+            var controller = new AccountController(_userManager, _userStore, _signInManager);
+
+            //ACT
+            var result = await controller.RegisterAsync(newUserWithPasswordToCheck);
+
+            //ASSERT
+
+            //run method to check if password contains capital letter, number and symbol.
+            Assert.True(controller.CheckPassword(newUserWithPasswordToCheck.Password));
+
+
+        }
+
+
+
+
+
+
+
         public async Task InitializeAsync()
         {
             await _context.Database.EnsureCreatedAsync();
@@ -158,41 +317,41 @@ namespace BokLoftet.Test
         {
             // Categories
             var categories = new List<Category>
-            {
+                {
                 new Category { Name = "Barnböcker" },
-                new Category { Name = "Thriller" }
-            };
+                    new Category { Name = "Thriller" }
+                    };
             _context.Categories.AddRange(categories);
 
             // Books
             var books = new List<Book>
             {
-                new Book
-                {
-                    Author = "Astrid Lindgren",
-                    Category = categories[0],
-                    Title = "Pippi Långstrump",
-                    Description = "En festlig bok om en stark liten flicka.",
-                    Language = "Svenska",
-                    Publisher = "Bonnier",
-                    PublishYear = 1948,
-                    Pages = 60,
-                    ISBN = "9789129697285",
-                    CoverImageURL = ""
-                },
-                new Book
-                {
-                    Author = "Astrid Lindgren",
-                    Category = categories[0],
-                    Title = "Pippi Långstrump",
-                    Description = "En festlig bok om en stark liten flicka.",
-                    Language = "Svenska",
-                    Publisher = "Bonnier",
-                    PublishYear = 1948,
-                    Pages = 60,
-                    ISBN = "9789129697285",
-                    CoverImageURL = ""
-                }
+            };
+            new Book
+            {
+                Author = "Astrid Lindgren",
+                Category = categories[0],
+                Title = "Pippi Långstrump",
+                Description = "En festlig bok om en stark liten flicka.",
+                Language = "Svenska",
+                Publisher = "Bonnier",
+                PublishYear = 1948,
+                Pages = 60,
+                ISBN = "9789129697285",
+                CoverImageURL = ""
+            };
+            new Book
+            {
+                Author = "Astrid Lindgren",
+                Category = categories[0],
+                Title = "Pippi Långstrump",
+                Description = "En festlig bok om en stark liten flicka.",
+                Language = "Svenska",
+                Publisher = "Bonnier",
+                PublishYear = 1948,
+                Pages = 60,
+                ISBN = "9789129697285",
+                CoverImageURL = ""
             };
             _context.Books.AddRange(books);
 
@@ -237,5 +396,6 @@ namespace BokLoftet.Test
 
             _context.SaveChanges();
         }
+
     }
 }
