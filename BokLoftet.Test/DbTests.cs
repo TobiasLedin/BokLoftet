@@ -1,10 +1,13 @@
 using BokLoftet.Data;
 using BokLoftet.Models;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
-using System.Drawing.Text;
+using System.Collections.Generic;
+using System.Net;
+using System.Security.Claims;
 using Xunit;
 
 namespace BokLoftet.Test
@@ -16,6 +19,7 @@ namespace BokLoftet.Test
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly SignInManager<ApplicationUser> _signInManager;
 
         public DbTests()
         {
@@ -27,6 +31,8 @@ namespace BokLoftet.Test
             _context = _serviceProvider.GetRequiredService<ApplicationDbContext>();
             _userManager = _serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
             _roleManager = _serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+            _signInManager = _serviceProvider.GetRequiredService<SignInManager<ApplicationUser>>();
+     
         }
 
 
@@ -39,7 +45,42 @@ namespace BokLoftet.Test
 
         }
 
-        
+        [Fact]
+        public async Task Login_IfLoginCredentialsAreValid_LoginUser()
+        {
+            // Arrange
+            string username = "janneloffe@karlsson.se";
+            string password = "Test123!";
+
+            
+
+            // Act
+            var result = await _signInManager.PasswordSignInAsync(username, password, false, false);
+
+            // Assert
+            Assert.True(result.Succeeded);
+        }
+
+        [Fact]
+        public async Task Login_IfLoginCredentialsAreInvalid_DisplayErrorMessage()
+        {
+            // Arrange
+
+            // Act
+
+            // Assert
+        }
+
+        [Fact]
+        public async Task Login_IfLoginSuccessful_RedirectUserToPage()
+        {
+            // Arrange
+
+            // Act
+
+            // Assert
+        }
+
 
         public async Task InitializeAsync()
         {
