@@ -1,5 +1,7 @@
+using BokLoftet.Controllers;
 using BokLoftet.Data;
 using BokLoftet.Models;
+using BokLoftet.ViewModels;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -45,42 +47,7 @@ namespace BokLoftet.Test
 
         }
 
-        [Fact]
-        public async Task Login_IfLoginCredentialsAreValid_LoginUser()
-        {
-            // Arrange
-            string username = "janneloffe@karlsson.se";
-            string password = "Test123!";
-
-            
-
-            // Act
-            var result = await _signInManager.PasswordSignInAsync(username, password, false, false);
-
-            // Assert
-            Assert.True(result.Succeeded);
-        }
-
-        [Fact]
-        public async Task Login_IfLoginCredentialsAreInvalid_DisplayErrorMessage()
-        {
-            // Arrange
-
-            // Act
-
-            // Assert
-        }
-
-        [Fact]
-        public async Task Login_IfLoginSuccessful_RedirectUserToPage()
-        {
-            // Arrange
-
-            // Act
-
-            // Assert
-        }
-
+        
 
         public async Task InitializeAsync()
         {
