@@ -28,7 +28,6 @@ namespace BokLoftet.Test
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly IUserStore<ApplicationUser> _userStore;
-        private readonly IAuthenticationService _authService;
 
         public DbTests()
         {
@@ -42,8 +41,6 @@ namespace BokLoftet.Test
             _roleManager = _serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
             _signInManager = _serviceProvider.GetRequiredService<SignInManager<ApplicationUser>>();
             _userStore = _serviceProvider.GetRequiredService<IUserStore<ApplicationUser>>();
-            _authService = _serviceProvider.GetRequiredService<IAuthenticationService>();
-     
         }
 
 
@@ -57,7 +54,7 @@ namespace BokLoftet.Test
         }
 
         [Fact]
-        public async Task Login_IfLoginCredentialsValid_RedirectToIndex()
+        public async Task Login_IfLoginCredentialsValid_AssertSignInManagerSucceededEqualTrue()
         {
             // Arrange
 
@@ -67,7 +64,7 @@ namespace BokLoftet.Test
 
             var loginCredentials = new LoginViewModel { Email = email, Password = password };
 
-
+            // Mock HttpContext
             var fakeHttpContext = A.Fake<HttpContext>();
 
             var user = new ClaimsPrincipal(new ClaimsIdentity(new Claim[]
@@ -77,54 +74,73 @@ namespace BokLoftet.Test
 
             A.CallTo(() => fakeHttpContext.User).Returns(user);
             
+
+            // Mock IAuthenticationService
             var authService = A.Fake<IAuthenticationService>();
             A.CallTo(() => authService.SignInAsync(A<HttpContext>._, A<string>._, A<ClaimsPrincipal>._, A<AuthenticationProperties>._))
                 .Returns(Task.CompletedTask);
             
+            // Add mock IAuthenticationService service to mock HttpContext
             fakeHttpContext.RequestServices = new ServiceCollection()
                 .AddSingleton<IAuthenticationService>(authService)
                 .BuildServiceProvider();
 
+            _signInManager.Context = fakeHttpContext;
+
+
+            // Act
+
+            var result = await _signInManager.PasswordSignInAsync(email, password, false, false);
+
+
+            // Assert
+
+            Assert.True(result.Succeeded);
+        }
+
+        [Fact]
+        public async Task Login_IfLoginCredentialsInvalid_AssertSignInManagerSucceededEqualFalse()
+        {
+            // Arrange
+
+            // Invalid login credentials
+            string email = "janneloffe@karlsson.se";
+            string password = "fellösenord";
+
+            var loginCredentials = new LoginViewModel { Email = email, Password = password };
+
+            // Mock HttpContext
+            var fakeHttpContext = A.Fake<HttpContext>();
+
+            var user = new ClaimsPrincipal(new ClaimsIdentity(new Claim[]
+            {
+                new Claim(ClaimTypes.Name, email)
+            }, "mock"));
+
+            A.CallTo(() => fakeHttpContext.User).Returns(user);
+
+
+            // Mock IAuthenticationService
+            var authService = A.Fake<IAuthenticationService>();
+            A.CallTo(() => authService.SignInAsync(A<HttpContext>._, A<string>._, A<ClaimsPrincipal>._, A<AuthenticationProperties>._))
+                .Returns(Task.CompletedTask);
+
+            fakeHttpContext.RequestServices = new ServiceCollection()
+                .AddSingleton<IAuthenticationService>(authService)
+                .BuildServiceProvider();
 
             _signInManager.Context = fakeHttpContext;
 
 
+            // Act
+
             var result = await _signInManager.PasswordSignInAsync(email, password, false, false);
 
-            Assert.True(result.Succeeded);
 
-            
+            // Assert
 
-            //var controllerContext = new ControllerContext
-            //{
-            //    HttpContext = fakeHttpContext
-            //};
-
-
-            //// Controller responsible for login
-            //var controller = new AccountController(_userManager, _userStore, _signInManager)
-            //{
-            //    ControllerContext = controllerContext
-            //};
-
-            //// Act
-
-            //var result = await controller.Login(loginCredentials);
-            //var resultType = result.GetType();
-
-            //// Assert
-            //Assert.IsType<RedirectToActionResult>(resultType);
+            Assert.False(result.Succeeded);
         }
-
-        //[Fact]
-        //public async Task Login_IfLoginCredentialsInvalid_ReturnFaultMessage()
-        //{
-        //    // Arrange
-
-        //    // Act
-
-        //    // Assert
-        //}
 
 
         public async Task InitializeAsync()
