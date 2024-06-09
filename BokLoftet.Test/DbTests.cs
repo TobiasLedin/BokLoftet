@@ -3,6 +3,7 @@ using BokLoftet.Models;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using System.Drawing.Text;
 using Xunit;
@@ -134,6 +135,40 @@ namespace BokLoftet.Test
             await _userManager.AddToRoleAsync(user2, "Admin");
 
             _context.SaveChanges();
+        }
+
+        [Fact]
+        public void LoanBook()
+        {
+            //Arrange
+            var book = _context.Books.FirstOrDefault(b => b.IsAvailable);
+            var user = _context.Users.FirstOrDefault();
+            Order order = new Order();
+
+            Assert.NotNull(book);
+            Assert.NotNull(user);
+
+            //Act
+            //Run the Loan book method
+
+            //Assert
+            Assert.False(book.IsAvailable, "Boken bör markeras som otillgänglig");
+            Assert.Contains(book, order.Books);
+        }
+
+        [Fact]
+        public void ReturnBook()
+        {
+            //Arrange
+            var order = _context.Orders.FirstOrDefault();
+            var user = order.Customer;
+            var book = order.Books.FirstOrDefault();
+
+            //Act
+            //Run the Return book method
+
+            //Assert
+            Assert.True(book.IsAvailable, "Boken bör markeras som otillgänglig");
         }
     }
 }
