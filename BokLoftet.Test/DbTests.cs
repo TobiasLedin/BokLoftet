@@ -1,11 +1,20 @@
+using BokLoftet.Controllers;
 using BokLoftet.Data;
 using BokLoftet.Models;
+using BokLoftet.ViewModels;
+using FakeItEasy;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.Build.Experimental.ProjectCache;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using System.Drawing.Text;
+using System.Collections.Generic;
+using System.Net;
+using System.Security.Claims;
 using Xunit;
 
 namespace BokLoftet.Test
@@ -17,6 +26,8 @@ namespace BokLoftet.Test
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly SignInManager<ApplicationUser> _signInManager;
+        private readonly IUserStore<ApplicationUser> _userStore;
 
         public DbTests()
         {
@@ -28,19 +39,109 @@ namespace BokLoftet.Test
             _context = _serviceProvider.GetRequiredService<ApplicationDbContext>();
             _userManager = _serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
             _roleManager = _serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+            _signInManager = _serviceProvider.GetRequiredService<SignInManager<ApplicationUser>>();
+            _userStore = _serviceProvider.GetRequiredService<IUserStore<ApplicationUser>>();
         }
 
 
         [Fact]
         public void DB_CheckIfCategoryExists()
         {
-            var category = _context.Categories.FirstOrDefault(x => x.Name == "Barnböcker");
+            var category = _context.Categories.FirstOrDefault(x => x.Name == "BarnbÃ¶cker");
 
             Assert.NotNull(category);
 
         }
 
-        
+        [Fact]
+        public async Task Login_IfLoginCredentialsValid_AssertSignInManagerSucceededEqualTrue()
+        {
+            // Arrange
+
+            // Valid login credentials
+            string email = "janneloffe@karlsson.se";
+            string password = "Test123!";
+
+            var loginCredentials = new LoginViewModel { Email = email, Password = password };
+
+            // Mock HttpContext
+            var fakeHttpContext = A.Fake<HttpContext>();
+
+            var user = new ClaimsPrincipal(new ClaimsIdentity(new Claim[]
+            {
+                new Claim(ClaimTypes.Name, email)
+            }, "mock"));
+
+            A.CallTo(() => fakeHttpContext.User).Returns(user);
+            
+
+            // Mock IAuthenticationService
+            var authService = A.Fake<IAuthenticationService>();
+            A.CallTo(() => authService.SignInAsync(A<HttpContext>._, A<string>._, A<ClaimsPrincipal>._, A<AuthenticationProperties>._))
+                .Returns(Task.CompletedTask);
+            
+            // Add mock IAuthenticationService service to mock HttpContext
+            fakeHttpContext.RequestServices = new ServiceCollection()
+                .AddSingleton<IAuthenticationService>(authService)
+                .BuildServiceProvider();
+
+            _signInManager.Context = fakeHttpContext;
+
+
+            // Act
+
+            var result = await _signInManager.PasswordSignInAsync(email, password, false, false);
+
+
+            // Assert
+
+            Assert.True(result.Succeeded);
+        }
+
+        [Fact]
+        public async Task Login_IfLoginCredentialsInvalid_AssertSignInManagerSucceededEqualFalse()
+        {
+            // Arrange
+
+            // Invalid login credentials
+            string email = "janneloffe@karlsson.se";
+            string password = "fellÃ¶senord";
+
+            var loginCredentials = new LoginViewModel { Email = email, Password = password };
+
+            // Mock HttpContext
+            var fakeHttpContext = A.Fake<HttpContext>();
+
+            var user = new ClaimsPrincipal(new ClaimsIdentity(new Claim[]
+            {
+                new Claim(ClaimTypes.Name, email)
+            }, "mock"));
+
+            A.CallTo(() => fakeHttpContext.User).Returns(user);
+
+
+            // Mock IAuthenticationService
+            var authService = A.Fake<IAuthenticationService>();
+            A.CallTo(() => authService.SignInAsync(A<HttpContext>._, A<string>._, A<ClaimsPrincipal>._, A<AuthenticationProperties>._))
+                .Returns(Task.CompletedTask);
+
+            fakeHttpContext.RequestServices = new ServiceCollection()
+                .AddSingleton<IAuthenticationService>(authService)
+                .BuildServiceProvider();
+
+            _signInManager.Context = fakeHttpContext;
+
+
+            // Act
+
+            var result = await _signInManager.PasswordSignInAsync(email, password, false, false);
+
+
+            // Assert
+
+            Assert.False(result.Succeeded);
+        }
+
 
         public async Task InitializeAsync()
         {
@@ -58,7 +159,7 @@ namespace BokLoftet.Test
             // Categories
             var categories = new List<Category>
             {
-                new Category { Name = "Barnböcker" },
+                new Category { Name = "BarnbÃ¶cker" },
                 new Category { Name = "Thriller" }
             };
             _context.Categories.AddRange(categories);
@@ -70,7 +171,7 @@ namespace BokLoftet.Test
                 {
                     Author = "Astrid Lindgren",
                     Category = categories[0],
-                    Title = "Pippi Långstrump",
+                    Title = "Pippi LÃ¥ngstrump",
                     Description = "En festlig bok om en stark liten flicka.",
                     Language = "Svenska",
                     Publisher = "Bonnier",
@@ -83,7 +184,7 @@ namespace BokLoftet.Test
                 {
                     Author = "Astrid Lindgren",
                     Category = categories[0],
-                    Title = "Pippi Långstrump",
+                    Title = "Pippi LÃ¥ngstrump",
                     Description = "En festlig bok om en stark liten flicka.",
                     Language = "Svenska",
                     Publisher = "Bonnier",
@@ -110,7 +211,7 @@ namespace BokLoftet.Test
             {
                 FirstName = "Janne",
                 LastName = "Karlsson",
-                Adress = "Blomvägen 1, Göteborg",
+                Adress = "BlomvÃ¤gen 1, GÃ¶teborg",
                 Email = "janneloffe@karlsson.se",
                 NormalizedEmail = "JANNELOFFE@KARLSSON.SE",
                 PhoneNumber = "555 123 456",
@@ -121,7 +222,7 @@ namespace BokLoftet.Test
             {
                 FirstName = "Greta",
                 LastName = "Svensson",
-                Adress = "Ringvägen 1, Göteborg",
+                Adress = "RingvÃ¤gen 1, GÃ¶teborg",
                 Email = "greta@bokloftet.se",
                 NormalizedEmail = "GRETA@BOKLOFTET.SE",
                 PhoneNumber = "555 123 457",
@@ -152,7 +253,7 @@ namespace BokLoftet.Test
             //Run the Loan book method
 
             //Assert
-            Assert.False(book.IsAvailable, "Boken bör markeras som otillgänglig");
+            Assert.False(book.IsAvailable, "Boken bÃ¶r markeras som otillgÃ¤nglig");
             Assert.Contains(book, order.Books);
         }
 
@@ -168,7 +269,7 @@ namespace BokLoftet.Test
             //Run the Return book method
 
             //Assert
-            Assert.True(book.IsAvailable, "Boken bör markeras som otillgänglig");
+            Assert.True(book.IsAvailable, "Boken bÃ¶r markeras som otillgÃ¤nglig");
         }
     }
 }
