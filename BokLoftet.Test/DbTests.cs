@@ -47,7 +47,7 @@ namespace BokLoftet.Test
         [Fact]
         public void DB_CheckIfCategoryExists()
         {
-            var category = _context.Categories.FirstOrDefault(x => x.Name == "Barnbˆcker");
+            var category = _context.Categories.FirstOrDefault(x => x.Name == "Barnb√∂cker");
 
             Assert.NotNull(category);
 
@@ -105,7 +105,7 @@ namespace BokLoftet.Test
 
             // Invalid login credentials
             string email = "janneloffe@karlsson.se";
-            string password = "fellˆsenord";
+            string password = "fell√∂senord";
 
             var loginCredentials = new LoginViewModel { Email = email, Password = password };
 
@@ -159,7 +159,7 @@ namespace BokLoftet.Test
             // Categories
             var categories = new List<Category>
             {
-                new Category { Name = "Barnbˆcker" },
+                new Category { Name = "Barnb√∂cker" },
                 new Category { Name = "Thriller" }
             };
             _context.Categories.AddRange(categories);
@@ -171,7 +171,7 @@ namespace BokLoftet.Test
                 {
                     Author = "Astrid Lindgren",
                     Category = categories[0],
-                    Title = "Pippi LÂngstrump",
+                    Title = "Pippi L√•ngstrump",
                     Description = "En festlig bok om en stark liten flicka.",
                     Language = "Svenska",
                     Publisher = "Bonnier",
@@ -184,7 +184,7 @@ namespace BokLoftet.Test
                 {
                     Author = "Astrid Lindgren",
                     Category = categories[0],
-                    Title = "Pippi LÂngstrump",
+                    Title = "Pippi L√•ngstrump",
                     Description = "En festlig bok om en stark liten flicka.",
                     Language = "Svenska",
                     Publisher = "Bonnier",
@@ -211,7 +211,7 @@ namespace BokLoftet.Test
             {
                 FirstName = "Janne",
                 LastName = "Karlsson",
-                Adress = "Blomv‰gen 1, Gˆteborg",
+                Adress = "Blomv√§gen 1, G√∂teborg",
                 Email = "janneloffe@karlsson.se",
                 NormalizedEmail = "JANNELOFFE@KARLSSON.SE",
                 PhoneNumber = "555 123 456",
@@ -222,7 +222,7 @@ namespace BokLoftet.Test
             {
                 FirstName = "Greta",
                 LastName = "Svensson",
-                Adress = "Ringv‰gen 1, Gˆteborg",
+                Adress = "Ringv√§gen 1, G√∂teborg",
                 Email = "greta@bokloftet.se",
                 NormalizedEmail = "GRETA@BOKLOFTET.SE",
                 PhoneNumber = "555 123 457",
@@ -236,6 +236,40 @@ namespace BokLoftet.Test
             await _userManager.AddToRoleAsync(user2, "Admin");
 
             _context.SaveChanges();
+        }
+
+        [Fact]
+        public void LoanBook()
+        {
+            //Arrange
+            var book = _context.Books.FirstOrDefault(b => b.IsAvailable);
+            var user = _context.Users.FirstOrDefault();
+            Order order = new Order();
+
+            Assert.NotNull(book);
+            Assert.NotNull(user);
+
+            //Act
+            //Run the Loan book method
+
+            //Assert
+            Assert.False(book.IsAvailable, "Boken b√∂r markeras som otillg√§nglig");
+            Assert.Contains(book, order.Books);
+        }
+
+        [Fact]
+        public void ReturnBook()
+        {
+            //Arrange
+            var order = _context.Orders.FirstOrDefault();
+            var user = order.Customer;
+            var book = order.Books.FirstOrDefault();
+
+            //Act
+            //Run the Return book method
+
+            //Assert
+            Assert.True(book.IsAvailable, "Boken b√∂r markeras som otillg√§nglig");
         }
     }
 }
