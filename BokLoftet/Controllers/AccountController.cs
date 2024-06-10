@@ -3,6 +3,7 @@ using BokLoftet.ViewModels;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using SQLitePCL;
 using System.ComponentModel.DataAnnotations;
 
 namespace BokLoftet.Controllers
@@ -24,41 +25,57 @@ namespace BokLoftet.Controllers
         }
 
 
+
+        //REGISTER
         public async Task<IActionResult> Register()
         {
             return View();
         }
 
         [HttpPost]
-        public async Task<IActionResult> Register(RegisterViewModel userData)
+        public async Task<IActionResult> RegisterAsync(RegisterViewModel userData)
         {
+            //check if new users email exists in database
+            var emailCheck = await _userManager.FindByEmailAsync(userData.Email);
+
             if (ModelState.IsValid)
             {
-                var user = new ApplicationUser
+                if (emailCheck == null)
+                //if no user is found, continue with registration
                 {
-                    FirstName = userData.FirstName,
-                    LastName = userData.LastName,
-                    Email = userData.Email,
-                    Adress = userData.Adress,
-                    PhoneNumber = userData.Phone,
-                    NormalizedUserName = userData.Email.ToUpper(),
-                    NormalizedEmail = userData.Email.ToUpper(),
-                    EmailConfirmed = true
-                };
+                    var user = new ApplicationUser
+                    {
+                        FirstName = userData.FirstName,
+                        LastName = userData.LastName,
+                        Email = userData.Email,
+                        Adress = userData.Adress,
+                        PhoneNumber = userData.Phone,
+                        NormalizedUserName = userData.Email.ToUpper(),
+                        NormalizedEmail = userData.Email.ToUpper(),
+                        EmailConfirmed = true
+                    };
 
-                await _userStore.SetUserNameAsync(user, userData.Email, CancellationToken.None);
-                var result = await _userManager.CreateAsync(user, userData.Password);
-                await _userManager.AddToRoleAsync(user, "Customer");
+                    await _userStore.SetUserNameAsync(user, userData.Email, CancellationToken.None);
+                    var result = await _userManager.CreateAsync(user, userData.Password);
+                    await _userManager.AddToRoleAsync(user, "Customer");
 
-                if (result.Succeeded)
-                {
-                    return RedirectToAction("Login");
+                    if (result.Succeeded)
+                    {
+                        return RedirectToAction("Login");
 
+                    }
+
+                    foreach (var error in result.Errors)
+                    {
+                        ModelState.AddModelError(string.Empty, error.Description);
+                    }
                 }
 
-                foreach (var error in result.Errors)
+                //if user with email already exist in database
+                else
                 {
-                    ModelState.AddModelError(string.Empty, error.Description);
+                    //add error message to email key of modelstate
+                    ModelState.AddModelError(nameof(userData.Email), "E-mail already exists.");
                 }
             }
 
@@ -66,6 +83,8 @@ namespace BokLoftet.Controllers
         }
 
 
+
+        //LOGIN
         public async Task<IActionResult> Login()
         {
             return View();
@@ -89,6 +108,7 @@ namespace BokLoftet.Controllers
             return View();
         }
 
+        //LOGOUT
         public async Task<IActionResult> Logout()
         {
             await _signInManager.SignOutAsync();
@@ -96,6 +116,27 @@ namespace BokLoftet.Controllers
             return RedirectToAction("Index", "Home");
         }
 
+
+        //method to check if password is correct format
+        public bool CheckPassword(string password)
+        {
+            bool hasCapitalLetter = false;
+            bool hasDigit = false;
+            bool hasSymbol = false;
+
+            foreach (var character in password)
+            {
+                if (char.IsUpper(character)) 
+                hasCapitalLetter = true;
+                else if (char.IsDigit(character))
+                    hasDigit = true;
+                else if (char.IsSymbol(character) || char.IsPunctuation(character))
+                    hasSymbol = true;
+
+            }
+
+            return hasCapitalLetter && hasDigit && hasSymbol;
+        }
 
     }
 }
