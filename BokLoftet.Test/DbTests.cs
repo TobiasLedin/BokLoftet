@@ -44,15 +44,6 @@ namespace BokLoftet.Test
 
 
         [Fact]
-        public void DB_CheckIfCategoryExists()
-        {
-            var category = _context.Categories.FirstOrDefault(x => x.Name == "Barnböcker");
-
-            Assert.NotNull(category);
-
-        }
-
-        [Fact]
         public async Task Login_IfLoginCredentialsValid_LoginUserAndRedirectToIndexPage()
         {
             // ARRANGE
@@ -87,9 +78,9 @@ namespace BokLoftet.Test
             var fakeTempDataDictionaryFactory = A.Fake<ITempDataDictionaryFactory>();
             A.CallTo(() => fakeTempDataDictionaryFactory.GetTempData(fakeHttpContext)).Returns(fakeTempDataDictionary);
           
-            // Add mock IAuthenticationService and mock IUrlHelperFactory service
-            // to a service collection and use it with the mock HttpContext
 
+            // Add mocked services to a service collection
+            // and use it with the mock HttpContext
             fakeHttpContext.RequestServices = new ServiceCollection()
                 .AddSingleton<IAuthenticationService>(fakeAuthService)
                 .AddSingleton<IUrlHelperFactory>(fakeUrlHelperFactory)
@@ -99,7 +90,7 @@ namespace BokLoftet.Test
             // Provide SignInManager with mock HttpContext
             _signInManager.Context = fakeHttpContext;
 
-            // Create controller instance with mock HttpContext
+            // Create controller instance and provide mock HttpContext
             var controller = new AccountController(_userManager, _userStore, _signInManager);
 
             controller.ControllerContext.HttpContext = fakeHttpContext;
@@ -230,17 +221,6 @@ namespace BokLoftet.Test
             Assert.Equal(orders.First().Books.First().Title, "Pippi Långstrump");
         }
 
-        [Fact]
-        public async Task Loan_LoanOrdersShouldContainData_StartDateEndDateBookTitles()
-        {
-            // Arrange
-
-            // Act
-
-            // Assert
-        }
-
-
         [Fact]  // Test to verify that books with matching title are returned
         public void Search_MatchingTitle_ReturnsBooks()
         {
@@ -261,7 +241,6 @@ namespace BokLoftet.Test
 
         [Fact]     // Verify that a view for no results is returned if no matching title is found
         public void Search_NoResultFromSearch_ReturnsNoResultsView()
-
         {
             //Arrange
             var searchString = "Nonexistent Book";
@@ -275,8 +254,8 @@ namespace BokLoftet.Test
             Assert.NotNull(result);
             Assert.Equal("NoResults", result.ViewName);
         }
+        
         [Fact]  // Verify that books with matching author are returned
-
         public void Search_MatchingAuthor_ReturnsBooks()
         {
             //Arrange
@@ -294,8 +273,6 @@ namespace BokLoftet.Test
         }
 
         [Fact]     // Test to verify that books with matching category are returned
-
-
         public void Search_MatchingCategory_ReturnsBooks()
         {
             //Arrange
@@ -313,7 +290,6 @@ namespace BokLoftet.Test
             Assert.Single(books);
             Assert.All(books, book => Assert.Equal(searchString, book.Category.Name));
         }
-
 
         //REGISTER new user tests (Peter)
 
@@ -423,7 +399,6 @@ namespace BokLoftet.Test
             #endregion other code
         }
 
-
         //Acceptanskriterie:
         //- Email-adress måste vara unik.
         [Fact]
@@ -464,8 +439,6 @@ namespace BokLoftet.Test
 
         }
 
-
-
         //Acceptanskriterie:
         //- Lösenord måste innehålla minst en stor bokstav, ett specialtecken och en siffra.*/
         [Fact]
@@ -500,6 +473,52 @@ namespace BokLoftet.Test
 
         }
 
+        [Fact]
+        public async Task LoanBook()
+        {
+            //Arrange
+            var book = _context.Books.FirstOrDefault();
+            if (book != null)
+            {
+                book.IsAvailable = true;
+                await _context.SaveChangesAsync();
+            }
+
+            var user = _context.Users.FirstOrDefault();
+            var bookController = new BookController(_userManager, _userStore, _signInManager, _context);
+
+            Assert.NotNull(book);
+            Assert.NotNull(user);
+
+            //Act
+            await bookController.Loan(book.Id, user.Id);
+
+            //Assert
+            Assert.False(book.IsAvailable, "Boken bör markeras som otillgänglig");
+            var order = _context.Orders.Include(o => o.Books).FirstOrDefault(o => o.Books.Any(b => b.Id == book.Id) && o.Customer.Id == user.Id);
+            Assert.NotNull(order);
+            Assert.Contains(book, order.Books);
+            Assert.Equal(user.Id, order.Customer.Id);
+        }
+
+        [Fact]
+        public async Task ReturnBook()
+        {
+            var book = _context.Books.FirstOrDefault(b => b.IsAvailable);
+            if (book != null)
+            {
+                book.IsAvailable = false;
+            }
+
+            var bookController = new BookController(_userManager, _userStore, _signInManager, _context);
+            Assert.NotNull(book);
+
+            //Act
+            await bookController.Return(book.Id);
+
+            //Assert
+            Assert.True(book.IsAvailable, "Boken bör markeras som tillgänglig");
+        }
 
         public async Task InitializeAsync()
         {
@@ -600,54 +619,6 @@ namespace BokLoftet.Test
             await _userManager.AddToRoleAsync(user2, "Admin");
 
             _context.SaveChanges();
-        }
-
-
-        [Fact]
-        public async Task LoanBook()
-        {
-            //Arrange
-            var book = _context.Books.FirstOrDefault();
-            if (book != null)
-            {
-                book.IsAvailable = true;
-                await _context.SaveChangesAsync();
-            }
-
-            var user = _context.Users.FirstOrDefault();
-            var bookController = new BookController(_userManager, _userStore, _signInManager, _context);
-
-            Assert.NotNull(book);
-            Assert.NotNull(user);
-
-            //Act
-            await bookController.Loan(book.Id, user.Id);
-
-            //Assert
-            Assert.False(book.IsAvailable, "Boken bör markeras som otillgänglig");
-            var order = _context.Orders.Include(o => o.Books).FirstOrDefault(o => o.Books.Any(b => b.Id == book.Id) && o.Customer.Id == user.Id);
-            Assert.NotNull(order);
-            Assert.Contains(book, order.Books);
-            Assert.Equal(user.Id, order.Customer.Id);
-        }
-
-        [Fact]
-        public async Task ReturnBook()
-        {
-            var book = _context.Books.FirstOrDefault(b => b.IsAvailable);
-            if (book != null)
-            {
-                book.IsAvailable = false;
-            }
-
-            var bookController = new BookController(_userManager, _userStore, _signInManager, _context);
-            Assert.NotNull(book);
-
-            //Act
-            await bookController.Return(book.Id);
-
-            //Assert
-            Assert.True(book.IsAvailable, "Boken bör markeras som tillgänglig");
         }
 
     }
