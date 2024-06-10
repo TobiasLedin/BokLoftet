@@ -1,9 +1,10 @@
-﻿using System.ComponentModel;
+﻿using BokLoftet.Models;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 
-namespace BokLoftet.Models
+namespace BokLoftet.ViewModels
 {
-    public class Book
+    public class BookViewModel
     {
         public int Id { get; set; }
 
@@ -14,8 +15,7 @@ namespace BokLoftet.Models
         public string Title { get; set; }
 
         [Required]
-        [DisplayName("Kategori")]
-        public Category Category { get; set; }
+        public int CategoryId { get; set; }
 
         [Required]
         [DisplayName("Författare")]
@@ -46,6 +46,5 @@ namespace BokLoftet.Models
 
         [DisplayName("Omslagsbild")]
         public string CoverImageURL { get; set; }
-
     }
 }
