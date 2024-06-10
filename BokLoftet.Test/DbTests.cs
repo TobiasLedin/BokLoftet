@@ -154,9 +154,7 @@ namespace BokLoftet.Test
         // - Verifiera att en ny post lagras i AspNetUsers-tabellen med samma email.
         [Fact]
         public async Task Register_AssertNewUserIsSavedToDatabase_EqualsTrue()
-        {
-        #region code for MVC
-            /*
+        {         
             //ARRANGE
             var newUserToSaveToDb = new RegisterViewModel()
             {
@@ -170,12 +168,13 @@ namespace BokLoftet.Test
                 ConfirmPassword = "Mario123!"
             };
 
-
             var controller = new AccountController(_userManager, _userStore, _signInManager);
+
 
             //ACT
             var result = await controller.RegisterAsync(newUserToSaveToDb);
             var user = await _userManager.FindByEmailAsync(newUserToSaveToDb.Email);
+
 
             //ASSERT
 
@@ -185,14 +184,9 @@ namespace BokLoftet.Test
             //check that the email of the user found in the database matches the email of the new user.
             Assert.Equal(newUserToSaveToDb.Email, user.Email);
 
-            */
 
-            
-            #endregion code for MVC
-
-
-            #region code for API
-
+            #region other code
+            /*
             //ARRANGE
             var newUserToSaveToDb = new RegisterViewModel()
             {
@@ -223,7 +217,6 @@ namespace BokLoftet.Test
          
             //var mockUrlHelper = A.Fake<IUrlHelper>();
             //A.CallTo(() => mockUrlHelperFactory.GetUrlHelper(A<ActionContext>.Ignored)).Returns(mockUrlHelper);
-            //
             #endregion
 
 
@@ -245,7 +238,6 @@ namespace BokLoftet.Test
 
             A.CallTo(() => controller.ControllerContext.HttpContext.RequestServices.GetService(typeof(IUrlHelperFactory))).Returns(mockUrlHelperFactory);
 
-            #endregion API
 
             //ACT
             var result = await controller.RegisterAsync(newUserToSaveToDb);
@@ -260,10 +252,8 @@ namespace BokLoftet.Test
             Assert.Equal(newUserToSaveToDb.Email, user.Email);
 
 
-
-            
-
-
+            */
+            #endregion other code
         }
 
 
@@ -272,80 +262,27 @@ namespace BokLoftet.Test
         [Fact]
         public async Task Register_AssertIfNewRegisteredUserEmail_AlreadyExistsInDatabase_EqualsTrue()
         {
-            #region code for MVC
-            ////ARRANGE
-            //var newUserWithExistingEmail = new RegisterViewModel()
-            //{
-
-            //    FirstName = "Loffe2",
-            //    LastName = "Karlsson2",
-            //    Email = "janneloffe@karlsson.se",
-            //    Adress = "Andra Vägen 2",
-            //    Phone = "0771-123 455",
-            //    Password = "Loffe123!",
-            //    ConfirmPassword = "Loffe123!"
-            //};
-
-            ////create controller
-            //var controller = new AccountController(_userManager, _userStore, _signInManager);
-
-            #endregion end of code for MVC
-
-
-
-
-            #region code for API
-
+           
             //ARRANGE
             var newUserWithExistingEmail = new RegisterViewModel()
             {
 
                 FirstName = "Loffe2",
-                LastName = "Karlsson2",                 
-                Email = "janneloffe@karlsson.se",           //this email adress already exists in database
+                LastName = "Karlsson2",
+                Email = "janneloffe@karlsson.se",
                 Adress = "Andra Vägen 2",
                 Phone = "0771-123 455",
                 Password = "Loffe123!",
                 ConfirmPassword = "Loffe123!"
             };
 
-            //Mock HttpContext
-            var mockHttpContext = A.Fake<HttpContext>();
-            A.CallTo(() => mockHttpContext.Request.Method).Returns("POST");
-
-            //Mock TempDataDictionaryFactory
-            var mockTempDataDictionaryFactory = A.Fake<ITempDataDictionaryFactory>();
-            var mockTempDataDictionary = A.Fake<ITempDataDictionary>();
-
-            A.CallTo(() => mockTempDataDictionaryFactory.GetTempData(A<HttpContext>.Ignored)).Returns(mockTempDataDictionary);
-
-            //Mock IUrlHelperFactory
-
-            var mockUrlHelperFactory = A.Fake<IUrlHelperFactory>();
-            var mockUrlHelper = A.Fake<IUrlHelper>();
-
-            A.CallTo(() => mockUrlHelperFactory.GetUrlHelper(A<ActionContext>.Ignored)).Returns(mockUrlHelper);
-
-            //controller
+            //create controller
             var controller = new AccountController(_userManager, _userStore, _signInManager);
-            controller.ControllerContext = new ControllerContext
-            {
-                HttpContext = mockHttpContext,
-
-            };
-            controller.TempData = mockTempDataDictionary;
-            controller.Url = mockUrlHelper;
-            controller.ControllerContext.HttpContext.RequestServices = A.Fake<IServiceProvider>();
-
-            A.CallTo(() => controller.ControllerContext.HttpContext.RequestServices.GetService(typeof(IUrlHelperFactory))).Returns(mockUrlHelperFactory);
-
-            #endregion end of code for API
-
-
 
 
             //ACT
             var result = await controller.RegisterAsync(newUserWithExistingEmail);
+
 
             //ASSERT
 
@@ -357,6 +294,7 @@ namespace BokLoftet.Test
 
             //check if modelstate email key contains an error message stating e-mail already exists.
             Assert.Contains("E-mail already exists.", viewResult.ViewData.ModelState[nameof(newUserWithExistingEmail.Email)].Errors.Select(e => e.ErrorMessage));
+
         }
 
 
@@ -366,8 +304,7 @@ namespace BokLoftet.Test
         [Fact]
         public async Task Register_AssertNewUserPasswordIncludes_CapitalLetter_Number_And_Symbol_EqualsTrue()
         {
-            #region code for MVC
-            /*
+                      
             //ARRANGE
             var newUserWithPasswordToCheck = new RegisterViewModel()
             {
@@ -383,72 +320,11 @@ namespace BokLoftet.Test
 
             //create controller
             var controller = new AccountController(_userManager, _userStore, _signInManager);
-            */
-            #endregion end of code for MVC
-
-
-
-
-
-            #region code for API
-
-            //ARRANGE
-            var newUserWithPasswordToCheck = new RegisterViewModel()
-            {
-
-                FirstName = "Jaromir",
-                LastName = "Jagr",
-                Email = "jagr@penguins.com",
-                Adress = "Penguins Road 68",
-                Phone = "0771-534 455",
-                Password = "Jagr123!",
-                ConfirmPassword = "Jagr123!"
-            };
-
-            //Mock HttpContext
-            var mockHttpContext = A.Fake<HttpContext>();
-            A.CallTo(() => mockHttpContext.Request.Method).Returns("POST");
-
-            //Mock TempDataDictionaryFactory
-            var mockTempDataDictionaryFactory = A.Fake<ITempDataDictionaryFactory>();
-            var mockTempDataDictionary = A.Fake<ITempDataDictionary>();
-
-            A.CallTo(() => mockTempDataDictionaryFactory.GetTempData(A<HttpContext>.Ignored)).Returns(mockTempDataDictionary);
-
-            //Mock IUrlHelperFactory
-
-            var mockUrlHelperFactory = A.Fake<IUrlHelperFactory>();
-            #region code used earlier
-            //var mockUrlHelper = A.Fake<IUrlHelper>();
-
-            //A.CallTo(() => mockUrlHelperFactory.GetUrlHelper(A<ActionContext>.Ignored)).Returns(mockUrlHelper);
-            #endregion
-
-
-            //controller
-            var controller = new AccountController(_userManager, _userStore, _signInManager);
-            controller.ControllerContext = new ControllerContext
-            {
-                HttpContext = mockHttpContext,
-
-            };
-            #region code used earlier
-            //controller.TempData = mockTempDataDictionary;
-            //controller.Url = mockUrlHelper;
-            #endregion
-
-            controller.ControllerContext.HttpContext.RequestServices = A.Fake<IServiceProvider>();
-
-            A.CallTo(() => controller.ControllerContext.HttpContext.RequestServices.GetService(typeof(IUrlHelperFactory))).Returns(mockUrlHelperFactory);
-
-            #endregion end of code for API
-
-
-
 
 
             //ACT
             var result = await controller.RegisterAsync(newUserWithPasswordToCheck);
+
 
             //ASSERT
 
