@@ -199,8 +199,8 @@ namespace BokLoftet.Test
 
             // Assert
         }
-       
 
+        [Fact]
         public void Search_MatchingTitle_ReturnsBooks()
         {
             //Arrange
