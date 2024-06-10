@@ -11,11 +11,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.AspNetCore.TestHost;
-using Microsoft.Build.Experimental.ProjectCache;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using System.Collections.Generic;
-using System.Net;
 using System.Security.Claims;
 using Xunit;
 
@@ -49,16 +46,16 @@ namespace BokLoftet.Test
         [Fact]
         public void DB_CheckIfCategoryExists()
         {
-            var category = _context.Categories.FirstOrDefault(x => x.Name == "Barnb�cker");
+            var category = _context.Categories.FirstOrDefault(x => x.Name == "Barnböcker");
 
             Assert.NotNull(category);
 
         }
 
         [Fact]
-        public async Task Login_IfLoginCredentialsValid_AssertSignInManagerSucceededEqualTrue()
+        public async Task Login_IfLoginCredentialsValid_LoginUserAndRedirectToIndexPage()
         {
-            // Arrange
+            // ARRANGE
 
             // Valid login credentials
             string email = "janneloffe@karlsson.se";
@@ -69,79 +66,178 @@ namespace BokLoftet.Test
             // Mock HttpContext
             var fakeHttpContext = A.Fake<HttpContext>();
 
-            var user = new ClaimsPrincipal(new ClaimsIdentity(new Claim[]
-            {
-                new Claim(ClaimTypes.Name, email)
-            }, "mock"));
-
-            A.CallTo(() => fakeHttpContext.User).Returns(user);
-
 
             // Mock IAuthenticationService
-            var authService = A.Fake<IAuthenticationService>();
-            A.CallTo(() => authService.SignInAsync(A<HttpContext>._, A<string>._, A<ClaimsPrincipal>._, A<AuthenticationProperties>._))
+            var fakeAuthService = A.Fake<IAuthenticationService>();
+            A.CallTo(() => fakeAuthService.SignInAsync(A<HttpContext>._, A<string>._, A<ClaimsPrincipal>._, A<AuthenticationProperties>._))
                 .Returns(Task.CompletedTask);
 
-            // Add mock IAuthenticationService service to mock HttpContext
+
+            // Mock UrlHelper
+            var fakeUrlHelper = A.Fake<IUrlHelper>();
+
+            // Mock IUrlHelperFactory
+            var fakeUrlHelperFactory = A.Fake<IUrlHelperFactory>();
+            A.CallTo(() => fakeUrlHelperFactory.GetUrlHelper(A<ActionContext>._)).Returns(fakeUrlHelper);
+
+            // Mock ITempDataDictionary
+            var fakeTempDataDictionary = A.Fake<ITempDataDictionary>();
+
+            //Mock ITempDataDictionaryFactory
+            var fakeTempDataDictionaryFactory = A.Fake<ITempDataDictionaryFactory>();
+            A.CallTo(() => fakeTempDataDictionaryFactory.GetTempData(fakeHttpContext)).Returns(fakeTempDataDictionary);
+          
+            // Add mock IAuthenticationService and mock IUrlHelperFactory service
+            // to a service collection and use it with the mock HttpContext
+
             fakeHttpContext.RequestServices = new ServiceCollection()
-                .AddSingleton<IAuthenticationService>(authService)
+                .AddSingleton<IAuthenticationService>(fakeAuthService)
+                .AddSingleton<IUrlHelperFactory>(fakeUrlHelperFactory)
+                .AddSingleton<ITempDataDictionaryFactory>(fakeTempDataDictionaryFactory)
                 .BuildServiceProvider();
 
+            // Provide SignInManager with mock HttpContext
             _signInManager.Context = fakeHttpContext;
 
+            // Create controller instance with mock HttpContext
+            var controller = new AccountController(_userManager, _userStore, _signInManager);
 
-            // Act
-
-            var result = await _signInManager.PasswordSignInAsync(email, password, false, false);
+            controller.ControllerContext.HttpContext = fakeHttpContext;
 
 
-            // Assert
+            // ACT
 
-            Assert.True(result.Succeeded);
+            var result = await controller.Login(loginCredentials);
+
+
+            // ASSERT
+
+            Assert.True(controller.User.Identity.IsAuthenticated);
+
+            Assert.IsType<RedirectToActionResult>(result);
         }
 
         [Fact]
-        public async Task Login_IfLoginCredentialsInvalid_AssertSignInManagerSucceededEqualFalse()
+        public async Task Login_IfLoginCredentialsInvalid_RemainOnLoginPageAndShowErrorMessage()
         {
-            // Arrange
+            // ARRANGE
 
             // Invalid login credentials
             string email = "janneloffe@karlsson.se";
-            string password = "fell�senord";
+            string password = "wrongpassword";
 
             var loginCredentials = new LoginViewModel { Email = email, Password = password };
 
             // Mock HttpContext
             var fakeHttpContext = A.Fake<HttpContext>();
 
-            var user = new ClaimsPrincipal(new ClaimsIdentity(new Claim[]
-            {
-                new Claim(ClaimTypes.Name, email)
-            }, "mock"));
-
-            A.CallTo(() => fakeHttpContext.User).Returns(user);
-
-
             // Mock IAuthenticationService
-            var authService = A.Fake<IAuthenticationService>();
-            A.CallTo(() => authService.SignInAsync(A<HttpContext>._, A<string>._, A<ClaimsPrincipal>._, A<AuthenticationProperties>._))
+            var fakeAuthService = A.Fake<IAuthenticationService>();
+            A.CallTo(() => fakeAuthService.SignInAsync(A<HttpContext>._, A<string>._, A<ClaimsPrincipal>._, A<AuthenticationProperties>._))
                 .Returns(Task.CompletedTask);
 
+            // Mock UrlHelper
+            var fakeUrlHelper = A.Fake<IUrlHelper>();
+
+            // Mock IUrlHelperFactory
+            var fakeUrlHelperFactory = A.Fake<IUrlHelperFactory>();
+            A.CallTo(() => fakeUrlHelperFactory.GetUrlHelper(A<ActionContext>._)).Returns(fakeUrlHelper);
+
+            // Mock ITempDataDictionary
+            var fakeTempDataDictionary = A.Fake<ITempDataDictionary>();
+
+            //Mock ITempDataDictionaryFactory
+            var fakeTempDataDictionaryFactory = A.Fake<ITempDataDictionaryFactory>();
+            A.CallTo(() => fakeTempDataDictionaryFactory.GetTempData(fakeHttpContext)).Returns(fakeTempDataDictionary);
+
+            // Add mock IAuthenticationService and mock IUrlHelperFactory service
+            // to a service collection and use it with the mock HttpContext
             fakeHttpContext.RequestServices = new ServiceCollection()
-                .AddSingleton<IAuthenticationService>(authService)
+                .AddSingleton<IAuthenticationService>(fakeAuthService)
+                .AddSingleton<IUrlHelperFactory>(fakeUrlHelperFactory)
+                .AddSingleton<ITempDataDictionaryFactory>(fakeTempDataDictionaryFactory)
                 .BuildServiceProvider();
 
+            // Provide SignInManager with mock HttpContext
             _signInManager.Context = fakeHttpContext;
+
+            // Create controller instance with mock HttpContext
+            var controller = new AccountController(_userManager, _userStore, _signInManager);
+
+            controller.ControllerContext.HttpContext = fakeHttpContext;
+
+
+            // ACT
+
+            var result = await controller.Login(loginCredentials);
+
+
+            // ASSERT
+
+            var error = controller.ModelState.Values.SelectMany(x => x.Errors).FirstOrDefault();
+
+            Assert.Equal("Felaktiga inloggningsuppgifter!", error.ErrorMessage);
+
+            Assert.False(controller.User.Identity.IsAuthenticated);
+
+            Assert.IsType<ViewResult>(result);
+        }
+
+        [Fact]
+        public async Task Loan_IfCustomerHasNoActiveLoanOrders_DisplayNoLoansMessage()
+        {
+            // Arrange
+            var customer = "janneloffe@karlsson.se";
+            string? message = null;
 
 
             // Act
-
-            var result = await _signInManager.PasswordSignInAsync(email, password, false, false);
+            if (_context.Orders.Where(x => x.Customer.Email == customer).Any() is false) 
+            {
+                message = "Du har inga aktiva låneordrar";
+            }
 
 
             // Assert
+            Assert.NotNull(message);
+        }
 
-            Assert.False(result.Succeeded);
+        [Fact]
+        public async Task Loan_IfCustomerHasActiveLoanOrders_DisplayLoanOrders()
+        {
+            // Arrange
+            var customer = "janneloffe@karlsson.se";
+
+            var order = new Order
+            {
+                Customer = _context.Users.First(x => x.Email == customer),
+                Books = new List<Book>
+                {
+                    _context.Books.First()
+                }
+            };
+
+            await _context.Orders.AddAsync(order);
+            _context.SaveChanges();
+
+
+            // Act
+            var orders = await _context.Orders.Where(x => x.Customer.Email == customer).ToListAsync();
+
+
+            // Assert
+            Assert.NotEmpty(orders);
+            Assert.Equal(orders.First().Books.First().Title, "Pippi Långstrump");
+        }
+
+        [Fact]
+        public async Task Loan_LoanOrdersShouldContainData_StartDateEndDateBookTitles()
+        {
+            // Arrange
+
+            // Act
+
+            // Assert
         }
 
 
@@ -149,8 +245,8 @@ namespace BokLoftet.Test
         public void Search_MatchingTitle_ReturnsBooks()
         {
             //Arrange
-            var searchString = "Pippi L�ngstrump";
-            var controller = new BookController(_context);
+            var searchString = "Pippi Långstrump";
+            var controller = new BookController(_userManager, _userStore, _signInManager, _context);
 
             //Act 
             var result = controller.Search(searchString) as ViewResult;
@@ -162,26 +258,30 @@ namespace BokLoftet.Test
             Assert.Single(books);
             Assert.Equal(searchString, books[0].Title);
         }
+
         [Fact]     // Verify that a view for no results is returned if no matching title is found
         public void Search_NoResultFromSearch_ReturnsNoResultsView()
+
         {
             //Arrange
             var searchString = "Nonexistent Book";
-            var controller = new BookController(_context);
+            var controller = new BookController(_userManager, _userStore, _signInManager, _context);
 
             //Act
             var result = controller.Search(searchString) as ViewResult;
+
 
             // Assert: Verify that the result is not null and the "NoResults" view is returned
             Assert.NotNull(result);
             Assert.Equal("NoResults", result.ViewName);
         }
         [Fact]  // Verify that books with matching author are returned
+
         public void Search_MatchingAuthor_ReturnsBooks()
         {
             //Arrange
             var searchString = "Astrid Lindgren";
-            var controller = new BookController(_context);
+            var controller = new BookController(_userManager, _userStore, _signInManager, _context);
 
             //Act
             var result = controller.Search(searchString) as ViewResult;
@@ -192,13 +292,15 @@ namespace BokLoftet.Test
             Assert.NotNull(books);
             Assert.All(books, book => Assert.Equal(searchString, book.Author));
         }
+
         [Fact]     // Test to verify that books with matching category are returned
+
 
         public void Search_MatchingCategory_ReturnsBooks()
         {
             //Arrange
             var searchString = "Thriller";
-            var controller = new BookController(_context);
+            var controller = new BookController(_userManager, _userStore, _signInManager, _context);
 
             //Act
             var result = controller.Search(searchString) as ViewResult;
@@ -211,6 +313,194 @@ namespace BokLoftet.Test
             Assert.Single(books);
             Assert.All(books, book => Assert.Equal(searchString, book.Category.Name));
         }
+
+
+        //REGISTER new user tests (Peter)
+
+        //Acceptanskriterie:
+        // - Verifiera att en ny post lagras i AspNetUsers-tabellen med samma email.
+        [Fact]
+        public async Task Register_AssertNewUserIsSavedToDatabase_EqualsTrue()
+        {         
+            //ARRANGE
+            var newUserToSaveToDb = new RegisterViewModel()
+            {
+
+                FirstName = "Mario",
+                LastName = "Lemieux",
+                Email = "mario@lemiuex.com",
+                Adress = "Pittsburgh Avenue 2",
+                Phone = "412-642-PENS",
+                Password = "Mario123!",
+                ConfirmPassword = "Mario123!"
+            };
+
+            var controller = new AccountController(_userManager, _userStore, _signInManager);
+
+
+            //ACT
+            var result = await controller.RegisterAsync(newUserToSaveToDb);
+            var user = await _userManager.FindByEmailAsync(newUserToSaveToDb.Email);
+
+
+            //ASSERT
+
+            //check that user is found in database by ensuring it's not null.
+            Assert.NotNull(user);
+
+            //check that the email of the user found in the database matches the email of the new user.
+            Assert.Equal(newUserToSaveToDb.Email, user.Email);
+
+
+            #region other code
+            /*
+            //ARRANGE
+            var newUserToSaveToDb = new RegisterViewModel()
+            {
+
+                FirstName = "Mario",
+                LastName = "Lemieux",
+                Email = "mario@lemiuex.com",
+                Adress = "Pittsburgh Avenue 2",
+                Phone = "412-642-PENS",
+                Password = "Mario123!",
+                ConfirmPassword = "Mario123!"
+            };
+
+            //Mock HttpContext
+            var mockHttpContext = A.Fake<HttpContext>();
+            A.CallTo(() => mockHttpContext.Request.Method).Returns("POST");
+
+            //Mock TempDataDictionaryFactory
+            var mockTempDataDictionaryFactory = A.Fake<ITempDataDictionaryFactory>();
+            var mockTempDataDictionary = A.Fake<ITempDataDictionary>();
+
+            A.CallTo(() => mockTempDataDictionaryFactory.GetTempData(A<HttpContext>.Ignored)).Returns(mockTempDataDictionary);
+
+            //Mock IUrlHelperFactory
+            var mockUrlHelperFactory = A.Fake<IUrlHelperFactory>();
+
+            #region code used earlier
+         
+            //var mockUrlHelper = A.Fake<IUrlHelper>();
+            //A.CallTo(() => mockUrlHelperFactory.GetUrlHelper(A<ActionContext>.Ignored)).Returns(mockUrlHelper);
+            #endregion
+
+
+            //controller
+            var controller = new AccountController(_userManager, _userStore, _signInManager);
+            controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = mockHttpContext,
+
+            };
+
+            #region code used earlier
+            //controller.TempData = mockTempDataDictionary;
+            //controller.Url = mockUrlHelper;
+            #endregion
+
+
+            controller.ControllerContext.HttpContext.RequestServices = A.Fake<IServiceProvider>();
+
+            A.CallTo(() => controller.ControllerContext.HttpContext.RequestServices.GetService(typeof(IUrlHelperFactory))).Returns(mockUrlHelperFactory);
+
+
+            //ACT
+            var result = await controller.RegisterAsync(newUserToSaveToDb);
+            var user = await _userManager.FindByEmailAsync(newUserToSaveToDb.Email);
+
+            //ASSERT
+
+            //check that user is found in database by ensuring it's not null.
+            Assert.NotNull(user);
+
+            //check that the email of the user found in the database matches the email of the new user.
+            Assert.Equal(newUserToSaveToDb.Email, user.Email);
+
+
+            */
+            #endregion other code
+        }
+
+
+        //Acceptanskriterie:
+        //- Email-adress måste vara unik.
+        [Fact]
+        public async Task Register_AssertIfNewRegisteredUserEmail_AlreadyExistsInDatabase_EqualsTrue()
+        {
+           
+            //ARRANGE
+            var newUserWithExistingEmail = new RegisterViewModel()
+            {
+
+                FirstName = "Loffe2",
+                LastName = "Karlsson2",
+                Email = "janneloffe@karlsson.se",
+                Adress = "Andra Vägen 2",
+                Phone = "0771-123 455",
+                Password = "Loffe123!",
+                ConfirmPassword = "Loffe123!"
+            };
+
+            //create controller
+            var controller = new AccountController(_userManager, _userStore, _signInManager);
+
+
+            //ACT
+            var result = await controller.RegisterAsync(newUserWithExistingEmail);
+
+
+            //ASSERT
+
+            //check that we get a view returned since that is what is returned when the register process fails.
+            var viewResult = Assert.IsType<ViewResult>(result);
+
+            //check if modelstate contains email key (of key-value pair).
+            Assert.True(viewResult.ViewData.ModelState.ContainsKey(nameof(newUserWithExistingEmail.Email)));
+
+            //check if modelstate email key contains an error message stating e-mail already exists.
+            Assert.Contains("E-mail already exists.", viewResult.ViewData.ModelState[nameof(newUserWithExistingEmail.Email)].Errors.Select(e => e.ErrorMessage));
+
+        }
+
+
+
+        //Acceptanskriterie:
+        //- Lösenord måste innehålla minst en stor bokstav, ett specialtecken och en siffra.*/
+        [Fact]
+        public async Task Register_AssertNewUserPasswordIncludes_CapitalLetter_Number_And_Symbol_EqualsTrue()
+        {
+                      
+            //ARRANGE
+            var newUserWithPasswordToCheck = new RegisterViewModel()
+            {
+
+                FirstName = "Jaromir",
+                LastName = "Jagr",
+                Email = "jagr@penguins.com",
+                Adress = "Penguins Road 68",
+                Phone = "0771-534 455",
+                Password = "Jagr123!",
+                ConfirmPassword = "Jagr123!"
+            };
+
+            //create controller
+            var controller = new AccountController(_userManager, _userStore, _signInManager);
+
+
+            //ACT
+            var result = await controller.RegisterAsync(newUserWithPasswordToCheck);
+
+
+            //ASSERT
+
+            //run method to check if password contains capital letter, number and symbol.
+            Assert.True(controller.CheckPassword(newUserWithPasswordToCheck.Password));
+
+        }
+
+
         public async Task InitializeAsync()
         {
             await _context.Database.EnsureCreatedAsync();
@@ -226,20 +516,23 @@ namespace BokLoftet.Test
         {
             // Categories
             var categories = new List<Category>
+
             {
-                new Category { Name = "Barnb�cker" },
+                new Category { Name = "Barnböcker" },
                 new Category { Name = "Thriller" }
             };
+
             _context.Categories.AddRange(categories);
 
             // Books
             var books = new List<Book>
             {
+
                 new Book
                 {
                     Author = "Astrid Lindgren",
                     Category = categories[0],
-                    Title = "Pippi L�ngstrump",
+                    Title = "Pippi Långstrump",
                     Description = "En festlig bok om en stark liten flicka.",
                     Language = "Svenska",
                     Publisher = "Bonnier",
@@ -250,6 +543,7 @@ namespace BokLoftet.Test
                 },
                 new Book
                 {
+
                     Author = "Lee Child",
                     Category = categories[1],
                     Title = "Jack Reacher",
@@ -259,8 +553,10 @@ namespace BokLoftet.Test
                     PublishYear = 1997,
                     Pages = 576,
                     ISBN = "9780515153651",
+
                     CoverImageURL = ""
                 }
+
             };
             _context.Books.AddRange(books);
 
@@ -279,7 +575,7 @@ namespace BokLoftet.Test
             {
                 FirstName = "Janne",
                 LastName = "Karlsson",
-                Adress = "Blomv�gen 1, G�teborg",
+                Adress = "Blomvägen 1, Göteborg",
                 Email = "janneloffe@karlsson.se",
                 NormalizedEmail = "JANNELOFFE@KARLSSON.SE",
                 PhoneNumber = "555 123 456",
@@ -290,7 +586,7 @@ namespace BokLoftet.Test
             {
                 FirstName = "Greta",
                 LastName = "Svensson",
-                Adress = "Ringv�gen 1, G�teborg",
+                Adress = "Ringvägen 1, Göteborg",
                 Email = "greta@bokloftet.se",
                 NormalizedEmail = "GRETA@BOKLOFTET.SE",
                 PhoneNumber = "555 123 457",
@@ -305,5 +601,54 @@ namespace BokLoftet.Test
 
             _context.SaveChanges();
         }
+
+
+        [Fact]
+        public async Task LoanBook()
+        {
+            //Arrange
+            var book = _context.Books.FirstOrDefault();
+            if (book != null)
+            {
+                book.IsAvailable = true;
+                await _context.SaveChangesAsync();
+            }
+
+            var user = _context.Users.FirstOrDefault();
+            var bookController = new BookController(_userManager, _userStore, _signInManager, _context);
+
+            Assert.NotNull(book);
+            Assert.NotNull(user);
+
+            //Act
+            await bookController.Loan(book.Id, user.Id);
+
+            //Assert
+            Assert.False(book.IsAvailable, "Boken bör markeras som otillgänglig");
+            var order = _context.Orders.Include(o => o.Books).FirstOrDefault(o => o.Books.Any(b => b.Id == book.Id) && o.Customer.Id == user.Id);
+            Assert.NotNull(order);
+            Assert.Contains(book, order.Books);
+            Assert.Equal(user.Id, order.Customer.Id);
+        }
+
+        [Fact]
+        public async Task ReturnBook()
+        {
+            var book = _context.Books.FirstOrDefault(b => b.IsAvailable);
+            if (book != null)
+            {
+                book.IsAvailable = false;
+            }
+
+            var bookController = new BookController(_userManager, _userStore, _signInManager, _context);
+            Assert.NotNull(book);
+
+            //Act
+            await bookController.Return(book.Id);
+
+            //Assert
+            Assert.True(book.IsAvailable, "Boken bör markeras som tillgänglig");
+        }
+
     }
 }
