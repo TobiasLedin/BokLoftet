@@ -7,17 +7,32 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using BokLoftet.Data;
 using BokLoftet.Models;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Identity;
+
 
 namespace BokLoftet.Controllers
 {
     public class BookController : Controller
     {
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IUserStore<ApplicationUser> _userStore;
+        private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly ApplicationDbContext _context;
 
-        public BookController(ApplicationDbContext context)
+        public BookController(
+            UserManager<ApplicationUser> userManager,
+            IUserStore<ApplicationUser> userStore,
+            SignInManager<ApplicationUser> signInManager,
+            ApplicationDbContext context)
         {
+            _userManager = userManager;
+            _userStore = userStore;
+            _signInManager = signInManager;
             _context = context;
         }
+
+
         [HttpGet]
         public IActionResult Search(string searchString)
         {
@@ -165,6 +180,32 @@ namespace BokLoftet.Controllers
         private bool BookExists(int id)
         {
             return _context.Books.Any(e => e.Id == id);
+        }
+
+        public async Task Loan(int bookId, string userId)
+        {
+            var book = await _context.Books.FindAsync(bookId);
+            if (book != null)
+            {
+                book.IsAvailable = false;
+                var order = new Order();
+                order.Books = new List<Book>();
+                order.Books.Add(book);
+                order.Customer = await _userManager.FindByIdAsync(userId);
+                _context.Orders.Add(order);
+                await _context.SaveChangesAsync();
+            }
+
+        }
+
+        public async Task Return(int bookId)
+        {
+            var book = await _context.Books.FindAsync(bookId);
+            if (book != null)
+            {
+                book.IsAvailable = true;
+                await _context.SaveChangesAsync();
+            }
         }
     }
 }

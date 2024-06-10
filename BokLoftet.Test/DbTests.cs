@@ -151,7 +151,7 @@ namespace BokLoftet.Test
         {
             //Arrange
             var searchString = "Pippi Långstrump";
-            var controller = new BookController(_context);
+            var controller = new BookController(_userManager, _userStore, _signInManager, _context);
 
             //Act
             var result = controller.Search(searchString) as ViewResult;
@@ -168,7 +168,7 @@ namespace BokLoftet.Test
         {
             //Arrange
             var searchString = "Nonexistent Book";
-            var controller = new BookController(_context);
+            var controller = new BookController(_userManager, _userStore, _signInManager, _context);
 
             //Act
             var result = controller.Search(searchString) as ViewResult;
@@ -183,7 +183,7 @@ namespace BokLoftet.Test
         {
             //Arrange
             var searchString = "Astrid Lindgren";
-            var controller = new BookController(_context);
+            var controller = new BookController(_userManager, _userStore, _signInManager, _context);
 
             //Act
             var result = controller.Search(searchString) as ViewResult;
@@ -200,7 +200,7 @@ namespace BokLoftet.Test
         {
             //Arrange
             var searchString = "Thriller";
-            var controller = new BookController(_context);
+            var controller = new BookController(_userManager, _userStore, _signInManager, _context);
 
             //Act
             var result = controller.Search(searchString) as ViewResult;
@@ -509,37 +509,50 @@ namespace BokLoftet.Test
 
 
         [Fact]
-        public void LoanBook()
+        public async Task LoanBook()
         {
             //Arrange
-            var book = _context.Books.FirstOrDefault(b => b.IsAvailable);
+            var book = _context.Books.FirstOrDefault();
+            if (book != null)
+            {
+                book.IsAvailable = true;
+                await _context.SaveChangesAsync();
+            }
+
             var user = _context.Users.FirstOrDefault();
-            Order order = new Order();
+            var bookController = new BookController(_userManager, _userStore, _signInManager, _context);
 
             Assert.NotNull(book);
             Assert.NotNull(user);
 
             //Act
-            //Run the Loan book method
+            await bookController.Loan(book.Id, user.Id);
 
             //Assert
             Assert.False(book.IsAvailable, "Boken bör markeras som otillgänglig");
+            var order = _context.Orders.Include(o => o.Books).FirstOrDefault(o => o.Books.Any(b => b.Id == book.Id) && o.Customer.Id == user.Id);
+            Assert.NotNull(order);
             Assert.Contains(book, order.Books);
+            Assert.Equal(user.Id, order.Customer.Id);
         }
 
         [Fact]
-        public void ReturnBook()
+        public async Task ReturnBook()
         {
-            //Arrange
-            var order = _context.Orders.FirstOrDefault();
-            var user = order.Customer;
-            var book = order.Books.FirstOrDefault();
+            var book = _context.Books.FirstOrDefault(b => b.IsAvailable);
+            if (book != null)
+            {
+                book.IsAvailable = false;
+            }
+
+            var bookController = new BookController(_userManager, _userStore, _signInManager, _context);
+            Assert.NotNull(book);
 
             //Act
-            //Run the Return book method
+            await bookController.Return(book.Id);
 
             //Assert
-            Assert.True(book.IsAvailable, "Boken bör markeras som otillgänglig");
+            Assert.True(book.IsAvailable, "Boken bör markeras som tillgänglig");
         }
 
     }
