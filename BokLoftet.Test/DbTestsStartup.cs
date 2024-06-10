@@ -1,6 +1,5 @@
 ﻿using BokLoftet.Data;
 using BokLoftet.Models;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
@@ -19,13 +18,12 @@ namespace BokLoftet.Test
             services.AddIdentity<ApplicationUser, IdentityRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>()
                 .AddDefaultTokenProviders();
-
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             
         }
-    }
 
+    }
 }
