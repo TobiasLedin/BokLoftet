@@ -51,7 +51,7 @@ namespace BokLoftet.Test
         [Fact]
         public void DB_CheckIfCategoryExists()
         {
-            var category = _context.Categories.FirstOrDefault(x => x.Name == "Barnböcker");
+            var category = _context.Categories.FirstOrDefault(x => x.Name == "BarnbÃ¶cker");
 
             Assert.NotNull(category);
 
@@ -109,7 +109,7 @@ namespace BokLoftet.Test
 
             // Invalid login credentials
             string email = "janneloffe@karlsson.se";
-            string password = "fellösenord";
+            string password = "fellÃ¶senord";
 
             var loginCredentials = new LoginViewModel { Email = email, Password = password };
 
@@ -258,7 +258,7 @@ namespace BokLoftet.Test
 
 
         //Acceptanskriterie:
-        //- Email-adress måste vara unik.
+        //- Email-adress mï¿½ste vara unik.
         [Fact]
         public async Task Register_AssertIfNewRegisteredUserEmail_AlreadyExistsInDatabase_EqualsTrue()
         {
@@ -270,7 +270,7 @@ namespace BokLoftet.Test
                 FirstName = "Loffe2",
                 LastName = "Karlsson2",
                 Email = "janneloffe@karlsson.se",
-                Adress = "Andra Vägen 2",
+                Adress = "Andra Vï¿½gen 2",
                 Phone = "0771-123 455",
                 Password = "Loffe123!",
                 ConfirmPassword = "Loffe123!"
@@ -300,7 +300,7 @@ namespace BokLoftet.Test
 
 
         //Acceptanskriterie:
-        //- Lösenord måste innehålla minst en stor bokstav, ett specialtecken och en siffra.*/
+        //- Lï¿½senord mï¿½ste innehï¿½lla minst en stor bokstav, ett specialtecken och en siffra.*/
         [Fact]
         public async Task Register_AssertNewUserPasswordIncludes_CapitalLetter_Number_And_Symbol_EqualsTrue()
         {
@@ -354,41 +354,45 @@ namespace BokLoftet.Test
         {
             // Categories
             var categories = new List<Category>
-                {
-                new Category { Name = "Barnböcker" },
-                    new Category { Name = "Thriller" }
-                    };
+
+            {
+                new Category { Name = "BarnbÃ¶cker" },
+                new Category { Name = "Thriller" }
+            };
+
             _context.Categories.AddRange(categories);
 
             // Books
             var books = new List<Book>
             {
-            };
-            new Book
-            {
-                Author = "Astrid Lindgren",
-                Category = categories[0],
-                Title = "Pippi Långstrump",
-                Description = "En festlig bok om en stark liten flicka.",
-                Language = "Svenska",
-                Publisher = "Bonnier",
-                PublishYear = 1948,
-                Pages = 60,
-                ISBN = "9789129697285",
-                CoverImageURL = ""
-            };
-            new Book
-            {
-                Author = "Astrid Lindgren",
-                Category = categories[0],
-                Title = "Pippi Långstrump",
-                Description = "En festlig bok om en stark liten flicka.",
-                Language = "Svenska",
-                Publisher = "Bonnier",
-                PublishYear = 1948,
-                Pages = 60,
-                ISBN = "9789129697285",
-                CoverImageURL = ""
+
+                new Book
+                {
+                    Author = "Astrid Lindgren",
+                    Category = categories[0],
+                    Title = "Pippi LÃ¥ngstrump",
+                    Description = "En festlig bok om en stark liten flicka.",
+                    Language = "Svenska",
+                    Publisher = "Bonnier",
+                    PublishYear = 1948,
+                    Pages = 60,
+                    ISBN = "9789129697285",
+                    CoverImageURL = ""
+                },
+                new Book
+                {
+                    Author = "Astrid Lindgren",
+                    Category = categories[0],
+                    Title = "Pippi LÃ¥ngstrump",
+                    Description = "En festlig bok om en stark liten flicka.",
+                    Language = "Svenska",
+                    Publisher = "Bonnier",
+                    PublishYear = 1948,
+                    Pages = 60,
+                    ISBN = "9789129697285",
+                    CoverImageURL = ""
+                }
+
             };
             _context.Books.AddRange(books);
 
@@ -407,7 +411,7 @@ namespace BokLoftet.Test
             {
                 FirstName = "Janne",
                 LastName = "Karlsson",
-                Adress = "Blomvägen 1, Göteborg",
+                Adress = "BlomvÃ¤gen 1, GÃ¶teborg",
                 Email = "janneloffe@karlsson.se",
                 NormalizedEmail = "JANNELOFFE@KARLSSON.SE",
                 PhoneNumber = "555 123 456",
@@ -418,7 +422,7 @@ namespace BokLoftet.Test
             {
                 FirstName = "Greta",
                 LastName = "Svensson",
-                Adress = "Ringvägen 1, Göteborg",
+                Adress = "RingvÃ¤gen 1, GÃ¶teborg",
                 Email = "greta@bokloftet.se",
                 NormalizedEmail = "GRETA@BOKLOFTET.SE",
                 PhoneNumber = "555 123 457",
@@ -432,6 +436,41 @@ namespace BokLoftet.Test
             await _userManager.AddToRoleAsync(user2, "Admin");
 
             _context.SaveChanges();
+        }
+
+
+        [Fact]
+        public void LoanBook()
+        {
+            //Arrange
+            var book = _context.Books.FirstOrDefault(b => b.IsAvailable);
+            var user = _context.Users.FirstOrDefault();
+            Order order = new Order();
+
+            Assert.NotNull(book);
+            Assert.NotNull(user);
+
+            //Act
+            //Run the Loan book method
+
+            //Assert
+            Assert.False(book.IsAvailable, "Boken bÃ¶r markeras som otillgÃ¤nglig");
+            Assert.Contains(book, order.Books);
+        }
+
+        [Fact]
+        public void ReturnBook()
+        {
+            //Arrange
+            var order = _context.Orders.FirstOrDefault();
+            var user = order.Customer;
+            var book = order.Books.FirstOrDefault();
+
+            //Act
+            //Run the Return book method
+
+            //Assert
+            Assert.True(book.IsAvailable, "Boken bÃ¶r markeras som otillgÃ¤nglig");
         }
 
     }
