@@ -147,6 +147,60 @@ namespace BokLoftet.Test
         }
 
         [Fact]
+        public async Task Loan_IfCustomerHasNoActiveLoanOrders_DisplayMessage()
+        {
+            // Arrange
+            var customer = "janneloffe@karlsson.se";
+            string? message = null;
+
+
+            // Act
+            if (_context.Orders.Where(x => x.Customer.Email == customer).Any() is false) 
+            {
+                message = "Du har inga aktiva l�neordrar";
+            }
+
+            // Assert
+            Assert.NotNull(message);
+        }
+
+        [Fact]
+        public async Task Loan_IfCustomerHasActiveLoanOrders_DisplayOrders()
+        {
+            // Arrange
+            var customer = "janneloffe@karlsson.se";
+
+            var order = new Order
+            {
+                Customer = _context.Users.First(x => x.Email == customer),
+                Books = new List<Book>
+                {
+                    _context.Books.First()
+                }
+            };
+
+            await _context.Orders.AddAsync(order);
+            _context.SaveChanges();
+
+            // Act
+            var orders = await _context.Orders.Where(x => x.Customer.Email == customer).ToListAsync();
+
+            // Assert
+            Assert.NotEmpty(orders);
+            Assert.Equal(orders.First().Books.First().Title, "Pippi L�ngstrump");
+        }
+
+        [Fact]
+        public async Task Loan_LoanOrdersShouldContainData_StartDateEndDateBookTitles()
+        {
+            // Arrange
+
+            // Act
+
+            // Assert
+        }
+       
+
         public void Search_MatchingTitle_ReturnsBooks()
         {
             //Arrange
@@ -398,12 +452,6 @@ namespace BokLoftet.Test
             Assert.True(controller.CheckPassword(newUserWithPasswordToCheck.Password));
 
         }
-
-
-
-
-
-
 
 
         public async Task InitializeAsync()
