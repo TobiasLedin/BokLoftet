@@ -11,13 +11,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.AspNetCore.TestHost;
-using Microsoft.Build.Experimental.ProjectCache;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.VisualStudio.Web.CodeGenerators.Mvc.Templates.BlazorIdentity.Pages.Manage;
-using System.Collections.Generic;
-using System.Net;
 using System.Security.Claims;
 using Xunit;
 
@@ -58,9 +53,9 @@ namespace BokLoftet.Test
         }
 
         [Fact]
-        public async Task Login_IfLoginCredentialsValid_AssertSignInManagerSucceededEqualTrue()
+        public async Task Login_IfLoginCredentialsValid_LoginUserAndRedirectToIndexPage()
         {
-            // Arrange
+            // ARRANGE
 
             // Valid login credentials
             string email = "janneloffe@karlsson.se";
@@ -71,83 +66,122 @@ namespace BokLoftet.Test
             // Mock HttpContext
             var fakeHttpContext = A.Fake<HttpContext>();
 
-            var user = new ClaimsPrincipal(new ClaimsIdentity(new Claim[]
-            {
-                new Claim(ClaimTypes.Name, email)
-            }, "mock"));
-
-            A.CallTo(() => fakeHttpContext.User).Returns(user);
-
-
             // Mock IAuthenticationService
-            var authService = A.Fake<IAuthenticationService>();
-            A.CallTo(() => authService.SignInAsync(A<HttpContext>._, A<string>._, A<ClaimsPrincipal>._, A<AuthenticationProperties>._))
+            var fakeAuthService = A.Fake<IAuthenticationService>();
+            A.CallTo(() => fakeAuthService.SignInAsync(A<HttpContext>._, A<string>._, A<ClaimsPrincipal>._, A<AuthenticationProperties>._))
                 .Returns(Task.CompletedTask);
 
-            // Add mock IAuthenticationService service to mock HttpContext
+            // Mock UrlHelper
+            var fakeUrlHelper = A.Fake<IUrlHelper>();
+
+            // Mock IUrlHelperFactory
+            var fakeUrlHelperFactory = A.Fake<IUrlHelperFactory>();
+            A.CallTo(() => fakeUrlHelperFactory.GetUrlHelper(A<ActionContext>._)).Returns(fakeUrlHelper);
+
+            // Mock ITempDataDictionary
+            var fakeTempDataDictionary = A.Fake<ITempDataDictionary>();
+
+            //Mock ITempDataDictionaryFactory
+            var fakeTempDataDictionaryFactory = A.Fake<ITempDataDictionaryFactory>();
+            A.CallTo(() => fakeTempDataDictionaryFactory.GetTempData(fakeHttpContext)).Returns(fakeTempDataDictionary);
+          
+            // Add mock IAuthenticationService and mock IUrlHelperFactory service
+            // to a service collection and use it with the mock HttpContext
             fakeHttpContext.RequestServices = new ServiceCollection()
-                .AddSingleton<IAuthenticationService>(authService)
+                .AddSingleton<IAuthenticationService>(fakeAuthService)
+                .AddSingleton<IUrlHelperFactory>(fakeUrlHelperFactory)
+                .AddSingleton<ITempDataDictionaryFactory>(fakeTempDataDictionaryFactory)
                 .BuildServiceProvider();
 
+            // Provide SignInManager with mock HttpContext
             _signInManager.Context = fakeHttpContext;
 
+            // Create controller instance with mock HttpContext
+            var controller = new AccountController(_userManager, _userStore, _signInManager);
 
-            // Act
-
-            var result = await _signInManager.PasswordSignInAsync(email, password, false, false);
+            controller.ControllerContext.HttpContext = fakeHttpContext;
 
 
-            // Assert
+            // ACT
 
-            Assert.True(result.Succeeded);
+            var result = await controller.Login(loginCredentials);
+
+
+            // ASSERT
+
+            Assert.True(controller.User.Identity.IsAuthenticated);
+
+            Assert.IsType<RedirectToActionResult>(result);
         }
 
         [Fact]
-        public async Task Login_IfLoginCredentialsInvalid_AssertSignInManagerSucceededEqualFalse()
+        public async Task Login_IfLoginCredentialsInvalid_RemainOnLoginPageAndShowErrorMessage()
         {
-            // Arrange
+            // ARRANGE
 
             // Invalid login credentials
             string email = "janneloffe@karlsson.se";
-            string password = "fellösenord";
+            string password = "wrongpassword";
 
             var loginCredentials = new LoginViewModel { Email = email, Password = password };
 
             // Mock HttpContext
             var fakeHttpContext = A.Fake<HttpContext>();
 
-            var user = new ClaimsPrincipal(new ClaimsIdentity(new Claim[]
-            {
-                new Claim(ClaimTypes.Name, email)
-            }, "mock"));
-
-            A.CallTo(() => fakeHttpContext.User).Returns(user);
-
-
             // Mock IAuthenticationService
-            var authService = A.Fake<IAuthenticationService>();
-            A.CallTo(() => authService.SignInAsync(A<HttpContext>._, A<string>._, A<ClaimsPrincipal>._, A<AuthenticationProperties>._))
+            var fakeAuthService = A.Fake<IAuthenticationService>();
+            A.CallTo(() => fakeAuthService.SignInAsync(A<HttpContext>._, A<string>._, A<ClaimsPrincipal>._, A<AuthenticationProperties>._))
                 .Returns(Task.CompletedTask);
 
+            // Mock UrlHelper
+            var fakeUrlHelper = A.Fake<IUrlHelper>();
+
+            // Mock IUrlHelperFactory
+            var fakeUrlHelperFactory = A.Fake<IUrlHelperFactory>();
+            A.CallTo(() => fakeUrlHelperFactory.GetUrlHelper(A<ActionContext>._)).Returns(fakeUrlHelper);
+
+            // Mock ITempDataDictionary
+            var fakeTempDataDictionary = A.Fake<ITempDataDictionary>();
+
+            //Mock ITempDataDictionaryFactory
+            var fakeTempDataDictionaryFactory = A.Fake<ITempDataDictionaryFactory>();
+            A.CallTo(() => fakeTempDataDictionaryFactory.GetTempData(fakeHttpContext)).Returns(fakeTempDataDictionary);
+
+            // Add mock IAuthenticationService and mock IUrlHelperFactory service
+            // to a service collection and use it with the mock HttpContext
             fakeHttpContext.RequestServices = new ServiceCollection()
-                .AddSingleton<IAuthenticationService>(authService)
+                .AddSingleton<IAuthenticationService>(fakeAuthService)
+                .AddSingleton<IUrlHelperFactory>(fakeUrlHelperFactory)
+                .AddSingleton<ITempDataDictionaryFactory>(fakeTempDataDictionaryFactory)
                 .BuildServiceProvider();
 
+            // Provide SignInManager with mock HttpContext
             _signInManager.Context = fakeHttpContext;
 
+            // Create controller instance with mock HttpContext
+            var controller = new AccountController(_userManager, _userStore, _signInManager);
 
-            // Act
-
-            var result = await _signInManager.PasswordSignInAsync(email, password, false, false);
+            controller.ControllerContext.HttpContext = fakeHttpContext;
 
 
-            // Assert
+            // ACT
 
-            Assert.False(result.Succeeded);
+            var result = await controller.Login(loginCredentials);
+
+
+            // ASSERT
+
+            var error = controller.ModelState.Values.SelectMany(x => x.Errors).FirstOrDefault();
+
+            Assert.Equal("Felaktiga inloggningsuppgifter!", error.ErrorMessage);
+
+            Assert.False(controller.User.Identity.IsAuthenticated);
+
+            Assert.IsType<ViewResult>(result);
         }
 
         [Fact]
-        public async Task Loan_IfCustomerHasNoActiveLoanOrders_DisplayMessage()
+        public async Task Loan_IfCustomerHasNoActiveLoanOrders_DisplayNoLoansMessage()
         {
             // Arrange
             var customer = "janneloffe@karlsson.se";
@@ -157,15 +191,16 @@ namespace BokLoftet.Test
             // Act
             if (_context.Orders.Where(x => x.Customer.Email == customer).Any() is false) 
             {
-                message = "Du har inga aktiva l�neordrar";
+                message = "Du har inga aktiva låneordrar";
             }
+
 
             // Assert
             Assert.NotNull(message);
         }
 
         [Fact]
-        public async Task Loan_IfCustomerHasActiveLoanOrders_DisplayOrders()
+        public async Task Loan_IfCustomerHasActiveLoanOrders_DisplayLoanOrders()
         {
             // Arrange
             var customer = "janneloffe@karlsson.se";
@@ -182,12 +217,14 @@ namespace BokLoftet.Test
             await _context.Orders.AddAsync(order);
             _context.SaveChanges();
 
+
             // Act
             var orders = await _context.Orders.Where(x => x.Customer.Email == customer).ToListAsync();
 
+
             // Assert
             Assert.NotEmpty(orders);
-            Assert.Equal(orders.First().Books.First().Title, "Pippi L�ngstrump");
+            Assert.Equal(orders.First().Books.First().Title, "Pippi Långstrump");
         }
 
         [Fact]
@@ -217,6 +254,7 @@ namespace BokLoftet.Test
             Assert.Single(model);
             Assert.Equal(searchString, model[0].Title);
         }
+
         [Fact]
         public void Search_NonMatchingTitle_ReturnsNoResultsView()
         {
@@ -232,6 +270,7 @@ namespace BokLoftet.Test
             Assert.NotNull(result);
             Assert.Equal("NoResults", result.ViewName);
         }
+
         [Fact]
         public void Search_MatchingAuthor_ReturnsBooks()
         {
@@ -249,6 +288,7 @@ namespace BokLoftet.Test
             Assert.Equal(1, model.Count);
             Assert.All(model, book => Assert.Equal(searchString, book.Author));
         }
+
         [Fact]
         public void Search_MatchingCategory_ReturnsBooks()
         {
@@ -378,7 +418,7 @@ namespace BokLoftet.Test
 
 
         //Acceptanskriterie:
-        //- Email-adress m�ste vara unik.
+        //- Email-adress måste vara unik.
         [Fact]
         public async Task Register_AssertIfNewRegisteredUserEmail_AlreadyExistsInDatabase_EqualsTrue()
         {
@@ -420,7 +460,7 @@ namespace BokLoftet.Test
 
 
         //Acceptanskriterie:
-        //- L�senord m�ste inneh�lla minst en stor bokstav, ett specialtecken och en siffra.*/
+        //- Lösenord måste innehålla minst en stor bokstav, ett specialtecken och en siffra.*/
         [Fact]
         public async Task Register_AssertNewUserPasswordIncludes_CapitalLetter_Number_And_Symbol_EqualsTrue()
         {
