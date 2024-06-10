@@ -73,7 +73,10 @@
     </dl>
 </div>
 <div>
-    <a asp-action="Loan" asp-route-id="@Model.Id"><button>Låna</button></a>
+    <form asp-action="Loan" method="post">
+        <input type="hidden" name="id" value="@Model.Id" />
+        <button type="submit">Låna</button>
+    </form>
     <a asp-action="Edit" asp-route-id="@Model?.Id">Edit</a> |
     <a asp-action="Index">Back to List</a>
 </div>

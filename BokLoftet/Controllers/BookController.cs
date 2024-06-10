@@ -195,7 +195,19 @@ namespace BokLoftet.Controllers
                 _context.Orders.Add(order);
                 await _context.SaveChangesAsync();
             }
+        }
 
+        [HttpPost]
+        public async Task<IActionResult> Loan(int id)
+        {
+            var userId = _userManager.GetUserId(User);
+            if (userId == null)
+            {
+                return Unauthorized();
+            }
+
+            await Loan(id, userId);
+            return RedirectToAction(nameof(Details), new { id });
         }
 
         public async Task Return(int bookId)
