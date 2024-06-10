@@ -8,6 +8,8 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Routing;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Build.Experimental.ProjectCache;
 using Microsoft.EntityFrameworkCore;
@@ -142,7 +144,71 @@ namespace BokLoftet.Test
             Assert.False(result.Succeeded);
         }
 
+        [Fact]
+        public void Search_MatchingTitle_ReturnsBooks()
+        {
+            //Arrange
+            var searchString = "Pippi Långstrump";
+            var controller = new BookController(_context);
 
+            //Act
+            var result = controller.Search(searchString) as ViewResult;
+
+            //Assert
+            Assert.NotNull(result);
+            var model = result.Model as List<Book>;
+            Assert.NotNull(model);
+            Assert.Single(model);
+            Assert.Equal(searchString, model[0].Title);
+        }
+        [Fact]
+        public void Search_NonMatchingTitle_ReturnsNoResultsView()
+        {
+            //Arrange
+            var searchString = "Nonexistent Book";
+            var controller = new BookController(_context);
+
+            //Act
+            var result = controller.Search(searchString) as ViewResult;
+
+            //Assert
+            Assert.NotNull(result);
+            Assert.Equal("NoResults", result.ViewName);
+        }
+        [Fact]
+        public void Search_MatchingAuthor_ReturnsBooks()
+        {
+            //Arrange
+            var searchString = "Astrid Lindgren";
+            var controller = new BookController(_context);
+
+            //Act
+            var result = controller.Search(searchString) as ViewResult;
+
+            //Assert
+            Assert.NotNull(result);
+            var model = result.Model as List<Book>;
+            Assert.NotNull(model);
+            Assert.Equal(1, model.Count);
+            Assert.All(model, book => Assert.Equal(searchString, book.Author));
+        }
+        [Fact]
+        public void Search_MatchingCategory_ReturnsBooks()
+        {
+            //Arrange
+            var searchString = "Thriller";
+            var controller = new BookController(_context);
+
+            //Act
+            var result = controller.Search(searchString) as ViewResult;
+
+            //Assert
+            Assert.NotNull(result);
+            var model = result.Model as List<Book>;
+            Assert.NotNull(model);
+            Assert.Equal(1, model.Count);
+            Assert.All(model, book => Assert.Equal(searchString, book.Category.Name));
+        }
         public async Task InitializeAsync()
         {
             await _context.Database.EnsureCreatedAsync();
@@ -182,15 +248,15 @@ namespace BokLoftet.Test
                 },
                 new Book
                 {
-                    Author = "Astrid Lindgren",
-                    Category = categories[0],
-                    Title = "Pippi Långstrump",
-                    Description = "En festlig bok om en stark liten flicka.",
-                    Language = "Svenska",
-                    Publisher = "Bonnier",
-                    PublishYear = 1948,
-                    Pages = 60,
-                    ISBN = "9789129697285",
+                    Author = "Lee Child",
+                    Category = categories[1],
+                    Title = "Jack Reacher",
+                    Description = "En festlig bok om en stark stor kille.",
+                    Language = "Engelska",
+                    Publisher = "Bantam Books",
+                    PublishYear = 1997,
+                    Pages = 576,
+                    ISBN = "9780515153651",
                     CoverImageURL = ""
                 }
             };
