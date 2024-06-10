@@ -104,6 +104,10 @@ namespace BokLoftet.Controllers
                 {
                     return RedirectToAction("Index", "Home");
                 }
+                else
+                {
+                    ModelState.AddModelError(string.Empty, "Felaktiga inloggningsuppgifter!");
+                }
             }
             return View();
         }
