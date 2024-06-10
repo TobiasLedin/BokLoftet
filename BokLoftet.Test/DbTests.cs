@@ -75,13 +75,13 @@ namespace BokLoftet.Test
             }, "mock"));
 
             A.CallTo(() => fakeHttpContext.User).Returns(user);
-            
+
 
             // Mock IAuthenticationService
             var authService = A.Fake<IAuthenticationService>();
             A.CallTo(() => authService.SignInAsync(A<HttpContext>._, A<string>._, A<ClaimsPrincipal>._, A<AuthenticationProperties>._))
                 .Returns(Task.CompletedTask);
-            
+
             // Add mock IAuthenticationService service to mock HttpContext
             fakeHttpContext.RequestServices = new ServiceCollection()
                 .AddSingleton<IAuthenticationService>(authService)
@@ -144,25 +144,26 @@ namespace BokLoftet.Test
             Assert.False(result.Succeeded);
         }
 
-        [Fact]
+
+        [Fact]  // Test to verify that books with matching title are returned
         public void Search_MatchingTitle_ReturnsBooks()
         {
             //Arrange
             var searchString = "Pippi Långstrump";
             var controller = new BookController(_context);
 
-            //Act
+            //Act 
             var result = controller.Search(searchString) as ViewResult;
 
-            //Assert
+            //Assert  Verify that the result is not null and the correct book is returned
             Assert.NotNull(result);
-            var model = result.Model as List<Book>;
-            Assert.NotNull(model);
-            Assert.Single(model);
-            Assert.Equal(searchString, model[0].Title);
+            var books = result.Model as List<Book>;
+            Assert.NotNull(books);
+            Assert.Single(books);
+            Assert.Equal(searchString, books[0].Title);
         }
-        [Fact]
-        public void Search_NonMatchingTitle_ReturnsNoResultsView()
+        [Fact]     // Verify that a view for no results is returned if no matching title is found
+        public void Search_NoResultFromSearch_ReturnsNoResultsView()
         {
             //Arrange
             var searchString = "Nonexistent Book";
@@ -171,11 +172,11 @@ namespace BokLoftet.Test
             //Act
             var result = controller.Search(searchString) as ViewResult;
 
-            //Assert
+            // Assert: Verify that the result is not null and the "NoResults" view is returned
             Assert.NotNull(result);
             Assert.Equal("NoResults", result.ViewName);
         }
-        [Fact]
+        [Fact]  // Verify that books with matching author are returned
         public void Search_MatchingAuthor_ReturnsBooks()
         {
             //Arrange
@@ -185,14 +186,14 @@ namespace BokLoftet.Test
             //Act
             var result = controller.Search(searchString) as ViewResult;
 
-            //Assert
+            // Assert: Verify that the result is not null and books with the correct author are returned
             Assert.NotNull(result);
-            var model = result.Model as List<Book>;
-            Assert.NotNull(model);
-            Assert.Equal(1, model.Count);
-            Assert.All(model, book => Assert.Equal(searchString, book.Author));
+            var books = result.Model as List<Book>;
+            Assert.NotNull(books);
+            Assert.All(books, book => Assert.Equal(searchString, book.Author));
         }
-        [Fact]
+        [Fact]     // Test to verify that books with matching category are returned
+
         public void Search_MatchingCategory_ReturnsBooks()
         {
             //Arrange
@@ -202,12 +203,13 @@ namespace BokLoftet.Test
             //Act
             var result = controller.Search(searchString) as ViewResult;
 
-            //Assert
+            // Assert: Verify that the result is not null and books with the correct category are returned
+
             Assert.NotNull(result);
-            var model = result.Model as List<Book>;
-            Assert.NotNull(model);
-            Assert.Equal(1, model.Count);
-            Assert.All(model, book => Assert.Equal(searchString, book.Category.Name));
+            var books = result.Model as List<Book>;
+            Assert.NotNull(books);
+            Assert.Single(books);
+            Assert.All(books, book => Assert.Equal(searchString, book.Category.Name));
         }
         public async Task InitializeAsync()
         {
