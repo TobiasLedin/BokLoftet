@@ -293,8 +293,6 @@ namespace BokLoftet.Test
 
         //REGISTER new user tests (Peter)
 
-        //Acceptanskriterie:
-        // - Verifiera att en ny post lagras i AspNetUsers-tabellen med samma email.
         [Fact]
         public async Task Register_AssertNewUserIsSavedToDatabase_EqualsTrue()
         {         
@@ -399,8 +397,7 @@ namespace BokLoftet.Test
             #endregion other code
         }
 
-        //Acceptanskriterie:
-        //- Email-adress måste vara unik.
+
         [Fact]
         public async Task Register_AssertIfNewRegisteredUserEmail_AlreadyExistsInDatabase_EqualsTrue()
         {
@@ -439,14 +436,13 @@ namespace BokLoftet.Test
 
         }
 
-        //Acceptanskriterie:
-        //- Lösenord måste innehålla minst en stor bokstav, ett specialtecken och en siffra.*/
+
         [Fact]
-        public async Task Register_AssertNewUserPasswordIncludes_CapitalLetter_Number_And_Symbol_EqualsTrue()
+        public async Task Register_AssertInvalidPassword_ReturnsCorrectErrorMessage()
         {
                       
             //ARRANGE
-            var newUserWithPasswordToCheck = new RegisterViewModel()
+            var newUserWithInvalidPassword = new RegisterViewModel()
             {
 
                 FirstName = "Jaromir",
@@ -454,7 +450,7 @@ namespace BokLoftet.Test
                 Email = "jagr@penguins.com",
                 Adress = "Penguins Road 68",
                 Phone = "0771-534 455",
-                Password = "Jagr123!",
+                Password = "jagr",                          //not a valid password
                 ConfirmPassword = "Jagr123!"
             };
 
@@ -463,14 +459,17 @@ namespace BokLoftet.Test
 
 
             //ACT
-            var result = await controller.RegisterAsync(newUserWithPasswordToCheck);
+            var result = await controller.RegisterAsync(newUserWithInvalidPassword) as ViewResult;
 
 
             //ASSERT
 
-            //run method to check if password contains capital letter, number and symbol.
-            Assert.True(controller.CheckPassword(newUserWithPasswordToCheck.Password));
+          
+            //check if modelstate contains password key.
+            Assert.True(result.ViewData.ModelState.ContainsKey(nameof(newUserWithInvalidPassword.Password)));
 
+            //check if modelstate password key contains an error message stating password format is incorrect.
+            Assert.Contains("Password must include at least one capital letter, one number, and one symbol.", result.ViewData.ModelState[nameof(newUserWithInvalidPassword.Password)].Errors.Select(e => e.ErrorMessage));
         }
 
         [Fact]
