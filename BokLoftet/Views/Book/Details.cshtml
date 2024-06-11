@@ -4,6 +4,35 @@
     ViewData["Title"] = "Details";
 }
 
+<section class="book-details">
+    <div class="details-left">
+        <img src="@Html.DisplayFor(model => model.CoverImageURL)"/>
+    </div>
+    <div class="details-right">
+        <h1>@Html.DisplayFor(model => model.Title)</h1>
+        <h2>@Html.DisplayFor(model => model.Author)</h2>
+        <p>@Html.DisplayFor(model => model.Description)</p>
+        
+        @if (Model.IsAvailable == true)
+        {
+            <form asp-action="Loan" method="post">
+                <input type="hidden" name="id" value="@Model.Id" />
+                <button type="submit">Låna</button>
+            </form>
+        }
+        @if (Model.IsAvailable == false)
+        {
+            <button class="not-available">Ej i lager</button>
+        }
+
+    </div>
+    
+</section>
+
+
+
+@*
+
 <h1>Details</h1>
 
 <div>
@@ -80,3 +109,7 @@
     <a asp-action="Edit" asp-route-id="@Model?.Id">Edit</a> |
     <a asp-action="Index">Back to List</a>
 </div>
+
+
+*@
+
