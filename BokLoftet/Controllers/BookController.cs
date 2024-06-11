@@ -9,6 +9,7 @@ using BokLoftet.Data;
 using BokLoftet.Models;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
+using BokLoftet.ViewModels;
 
 
 namespace BokLoftet.Controllers
@@ -74,23 +75,39 @@ namespace BokLoftet.Controllers
         // GET: Book/Create
         public IActionResult Create()
         {
+            
+
+            ViewBag.Categories = _context.Categories.ToList();
+
             return View();
         }
 
         // POST: Book/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,IsAvailable,Title,Author,Language,Pages,Publisher,PublishYear,ISBN,Description,CoverImageURL")] Book book)
+        public async Task<IActionResult> Create(BookViewModel bookData)
         {
             if (ModelState.IsValid)
             {
+                var book = new Book
+                {
+                    Category = await _context.Categories.FirstAsync(x => x.Id == bookData.CategoryId),
+                    Title = bookData.Title,
+                    Author = bookData.Author,
+                    Language = bookData.Language,
+                    Pages = bookData.Pages,
+                    Publisher = bookData.Publisher,
+                    PublishYear = bookData.PublishYear,
+                    ISBN = bookData.ISBN,
+                    Description = bookData.Description,
+                    CoverImageURL = bookData.CoverImageURL
+                };
+                
                 _context.Add(book);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            return View(book);
+            return View();
         }
 
         // GET: Book/Edit/5

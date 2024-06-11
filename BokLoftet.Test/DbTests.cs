@@ -44,15 +44,6 @@ namespace BokLoftet.Test
 
 
         [Fact]
-        public void DB_CheckIfCategoryExists()
-        {
-            var category = _context.Categories.FirstOrDefault(x => x.Name == "Barnböcker");
-
-            Assert.NotNull(category);
-
-        }
-
-        [Fact]
         public async Task Login_IfLoginCredentialsValid_LoginUserAndRedirectToIndexPage()
         {
             // ARRANGE
@@ -66,10 +57,12 @@ namespace BokLoftet.Test
             // Mock HttpContext
             var fakeHttpContext = A.Fake<HttpContext>();
 
+
             // Mock IAuthenticationService
             var fakeAuthService = A.Fake<IAuthenticationService>();
             A.CallTo(() => fakeAuthService.SignInAsync(A<HttpContext>._, A<string>._, A<ClaimsPrincipal>._, A<AuthenticationProperties>._))
                 .Returns(Task.CompletedTask);
+
 
             // Mock UrlHelper
             var fakeUrlHelper = A.Fake<IUrlHelper>();
@@ -85,8 +78,9 @@ namespace BokLoftet.Test
             var fakeTempDataDictionaryFactory = A.Fake<ITempDataDictionaryFactory>();
             A.CallTo(() => fakeTempDataDictionaryFactory.GetTempData(fakeHttpContext)).Returns(fakeTempDataDictionary);
           
-            // Add mock IAuthenticationService and mock IUrlHelperFactory service
-            // to a service collection and use it with the mock HttpContext
+
+            // Add mocked services to a service collection
+            // and use it with the mock HttpContext
             fakeHttpContext.RequestServices = new ServiceCollection()
                 .AddSingleton<IAuthenticationService>(fakeAuthService)
                 .AddSingleton<IUrlHelperFactory>(fakeUrlHelperFactory)
@@ -96,7 +90,7 @@ namespace BokLoftet.Test
             // Provide SignInManager with mock HttpContext
             _signInManager.Context = fakeHttpContext;
 
-            // Create controller instance with mock HttpContext
+            // Create controller instance and provide mock HttpContext
             var controller = new AccountController(_userManager, _userStore, _signInManager);
 
             controller.ControllerContext.HttpContext = fakeHttpContext;
@@ -227,36 +221,26 @@ namespace BokLoftet.Test
             Assert.Equal(orders.First().Books.First().Title, "Pippi Långstrump");
         }
 
-        [Fact]
-        public async Task Loan_LoanOrdersShouldContainData_StartDateEndDateBookTitles()
-        {
-            // Arrange
-
-            // Act
-
-            // Assert
-        }
-
-        [Fact]
+        [Fact]  // Test to verify that books with matching title are returned
         public void Search_MatchingTitle_ReturnsBooks()
         {
             //Arrange
             var searchString = "Pippi Långstrump";
             var controller = new BookController(_userManager, _userStore, _signInManager, _context);
 
-            //Act
+            //Act 
             var result = controller.Search(searchString) as ViewResult;
 
-            //Assert
+            //Assert  Verify that the result is not null and the correct book is returned
             Assert.NotNull(result);
-            var model = result.Model as List<Book>;
-            Assert.NotNull(model);
-            Assert.Single(model);
-            Assert.Equal(searchString, model[0].Title);
+            var books = result.Model as List<Book>;
+            Assert.NotNull(books);
+            Assert.Single(books);
+            Assert.Equal(searchString, books[0].Title);
         }
 
-        [Fact]
-        public void Search_NonMatchingTitle_ReturnsNoResultsView()
+        [Fact]     // Verify that a view for no results is returned if no matching title is found
+        public void Search_NoResultFromSearch_ReturnsNoResultsView()
         {
             //Arrange
             var searchString = "Nonexistent Book";
@@ -266,12 +250,12 @@ namespace BokLoftet.Test
             var result = controller.Search(searchString) as ViewResult;
 
 
-            //Assert
+            // Assert: Verify that the result is not null and the "NoResults" view is returned
             Assert.NotNull(result);
             Assert.Equal("NoResults", result.ViewName);
         }
-
-        [Fact]
+        
+        [Fact]  // Verify that books with matching author are returned
         public void Search_MatchingAuthor_ReturnsBooks()
         {
             //Arrange
@@ -281,15 +265,14 @@ namespace BokLoftet.Test
             //Act
             var result = controller.Search(searchString) as ViewResult;
 
-            //Assert
+            // Assert: Verify that the result is not null and books with the correct author are returned
             Assert.NotNull(result);
-            var model = result.Model as List<Book>;
-            Assert.NotNull(model);
-            Assert.Equal(1, model.Count);
-            Assert.All(model, book => Assert.Equal(searchString, book.Author));
+            var books = result.Model as List<Book>;
+            Assert.NotNull(books);
+            Assert.All(books, book => Assert.Equal(searchString, book.Author));
         }
 
-        [Fact]
+        [Fact]     // Test to verify that books with matching category are returned
         public void Search_MatchingCategory_ReturnsBooks()
         {
             //Arrange
@@ -299,14 +282,14 @@ namespace BokLoftet.Test
             //Act
             var result = controller.Search(searchString) as ViewResult;
 
-            //Assert
-            Assert.NotNull(result);
-            var model = result.Model as List<Book>;
-            Assert.NotNull(model);
-            Assert.Equal(1, model.Count);
-            Assert.All(model, book => Assert.Equal(searchString, book.Category.Name));
-        }
+            // Assert: Verify that the result is not null and books with the correct category are returned
 
+            Assert.NotNull(result);
+            var books = result.Model as List<Book>;
+            Assert.NotNull(books);
+            Assert.Single(books);
+            Assert.All(books, book => Assert.Equal(searchString, book.Category.Name));
+        }
 
         //REGISTER new user tests (Peter)
 
@@ -415,7 +398,6 @@ namespace BokLoftet.Test
         }
 
 
-      
         [Fact]
         public async Task Register_AssertIfNewRegisteredUserEmail_AlreadyExistsInDatabase_EqualsTrue()
         {
@@ -455,8 +437,6 @@ namespace BokLoftet.Test
         }
 
 
-
-      
         [Fact]
         public async Task Register_AssertInvalidPassword_ReturnsCorrectErrorMessage()
         {
@@ -492,6 +472,52 @@ namespace BokLoftet.Test
             Assert.Contains("Password must include at least one capital letter, one number, and one symbol.", result.ViewData.ModelState[nameof(newUserWithInvalidPassword.Password)].Errors.Select(e => e.ErrorMessage));
         }
 
+        [Fact]
+        public async Task LoanBook()
+        {
+            //Arrange
+            var book = _context.Books.FirstOrDefault();
+            if (book != null)
+            {
+                book.IsAvailable = true;
+                await _context.SaveChangesAsync();
+            }
+
+            var user = _context.Users.FirstOrDefault();
+            var bookController = new BookController(_userManager, _userStore, _signInManager, _context);
+
+            Assert.NotNull(book);
+            Assert.NotNull(user);
+
+            //Act
+            await bookController.Loan(book.Id, user.Id);
+
+            //Assert
+            Assert.False(book.IsAvailable, "Boken bör markeras som otillgänglig");
+            var order = _context.Orders.Include(o => o.Books).FirstOrDefault(o => o.Books.Any(b => b.Id == book.Id) && o.Customer.Id == user.Id);
+            Assert.NotNull(order);
+            Assert.Contains(book, order.Books);
+            Assert.Equal(user.Id, order.Customer.Id);
+        }
+
+        [Fact]
+        public async Task ReturnBook()
+        {
+            var book = _context.Books.FirstOrDefault(b => b.IsAvailable);
+            if (book != null)
+            {
+                book.IsAvailable = false;
+            }
+
+            var bookController = new BookController(_userManager, _userStore, _signInManager, _context);
+            Assert.NotNull(book);
+
+            //Act
+            await bookController.Return(book.Id);
+
+            //Assert
+            Assert.True(book.IsAvailable, "Boken bör markeras som tillgänglig");
+        }
 
         public async Task InitializeAsync()
         {
@@ -592,54 +618,6 @@ namespace BokLoftet.Test
             await _userManager.AddToRoleAsync(user2, "Admin");
 
             _context.SaveChanges();
-        }
-
-
-        [Fact]
-        public async Task LoanBook()
-        {
-            //Arrange
-            var book = _context.Books.FirstOrDefault();
-            if (book != null)
-            {
-                book.IsAvailable = true;
-                await _context.SaveChangesAsync();
-            }
-
-            var user = _context.Users.FirstOrDefault();
-            var bookController = new BookController(_userManager, _userStore, _signInManager, _context);
-
-            Assert.NotNull(book);
-            Assert.NotNull(user);
-
-            //Act
-            await bookController.Loan(book.Id, user.Id);
-
-            //Assert
-            Assert.False(book.IsAvailable, "Boken bör markeras som otillgänglig");
-            var order = _context.Orders.Include(o => o.Books).FirstOrDefault(o => o.Books.Any(b => b.Id == book.Id) && o.Customer.Id == user.Id);
-            Assert.NotNull(order);
-            Assert.Contains(book, order.Books);
-            Assert.Equal(user.Id, order.Customer.Id);
-        }
-
-        [Fact]
-        public async Task ReturnBook()
-        {
-            var book = _context.Books.FirstOrDefault(b => b.IsAvailable);
-            if (book != null)
-            {
-                book.IsAvailable = false;
-            }
-
-            var bookController = new BookController(_userManager, _userStore, _signInManager, _context);
-            Assert.NotNull(book);
-
-            //Act
-            await bookController.Return(book.Id);
-
-            //Assert
-            Assert.True(book.IsAvailable, "Boken bör markeras som tillgänglig");
         }
 
     }

@@ -4,52 +4,70 @@
     ViewData["Title"] = "Index";
 }
 
-<h1>Index</h1>
+<h1>Böcker</h1>
+<div class="grid-container">
+    @foreach (var item in Model)
+    {
+        <a asp-action="Details" asp-route-id="@item.Id">
+            <div class="book-card">
+                <img src="@item.CoverImageURL" />
+                <h1>@item.Title</h1>
+                <h2>@item.Author</h2>
+            </div>
+        </a>
+        
+    }
+</div>
 
-<p>
-    <a asp-action="Create">Create New</a>
+@*
+    <p>
+    <a asp-action="Create">Lägg till bok</a>
 </p>
 <table class="table">
     <thead>
         <tr>
             <th>
-                @Html.DisplayNameFor(model => model.IsAvailable)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Title)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Author)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Language)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Pages)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Publisher)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.PublishYear)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.ISBN)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Description)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.CoverImageURL)
-            </th>
-            <th></th>
+            @Html.DisplayNameFor(model => model.IsAvailable)
+            </th> 
+<th>
+    @Html.DisplayNameFor(model => model.CoverImageURL)
+</th>
+<th>
+    @Html.DisplayNameFor(model => model.Title)
+</th>
+<th>
+    @Html.DisplayNameFor(model => model.Author)
+</th>
+<th>
+    @Html.DisplayNameFor(model => model.Language)
+</th>
+<th>
+    @Html.DisplayNameFor(model => model.Pages)
+</th>
+<th>
+    @Html.DisplayNameFor(model => model.Publisher)
+</th>
+<th>
+    @Html.DisplayNameFor(model => model.PublishYear)
+</th>
+<th>
+    @Html.DisplayNameFor(model => model.ISBN)
+</th>
+<th>
+    @Html.DisplayNameFor(model => model.Description)
+</th>
+<th></th>
         </tr>
     </thead>
-    <tbody>
-@foreach (var item in Model) {
+<tbody>
+    @foreach (var item in Model)
+    {
         <tr>
+            @* <td>
+        @Html.DisplayFor(modelItem => item.IsAvailable)
+        </td> 
             <td>
-                @Html.DisplayFor(modelItem => item.IsAvailable)
+                <img src="@Html.DisplayFor(modelItem => item.CoverImageURL)" height="150px" />
             </td>
             <td>
                 @Html.DisplayFor(modelItem => item.Title)
@@ -76,14 +94,13 @@
                 @Html.DisplayFor(modelItem => item.Description)
             </td>
             <td>
-                @Html.DisplayFor(modelItem => item.CoverImageURL)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
+                <a asp-action="Edit" asp-route-id="@item.Id">Editera</a> |
+                <a asp-action="Details" asp-route-id="@item.Id">Detaljer</a> |
+                <a asp-action="Delete" asp-route-id="@item.Id">Ta bort</a>
             </td>
         </tr>
-}
-    </tbody>
+    }
+</tbody>
 </table>
+*@
+
