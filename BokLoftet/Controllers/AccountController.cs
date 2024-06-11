@@ -35,47 +35,61 @@ namespace BokLoftet.Controllers
         [HttpPost]
         public async Task<IActionResult> RegisterAsync(RegisterViewModel userData)
         {
+            //check if password is correct format
+            var passwordCorrectFormat = CheckPassword(userData.Password);
+
             //check if new users email exists in database
             var emailCheck = await _userManager.FindByEmailAsync(userData.Email);
 
             if (ModelState.IsValid)
             {
-                if (emailCheck == null)
-                //if no user is found, continue with registration
+                if (passwordCorrectFormat == true)
                 {
-                    var user = new ApplicationUser
+                    if (emailCheck == null)
+                    //if no user is found, continue with registration
                     {
-                        FirstName = userData.FirstName,
-                        LastName = userData.LastName,
-                        Email = userData.Email,
-                        Adress = userData.Adress,
-                        PhoneNumber = userData.Phone,
-                        NormalizedUserName = userData.Email.ToUpper(),
-                        NormalizedEmail = userData.Email.ToUpper(),
-                        EmailConfirmed = true
-                    };
+                        #region registration
+                        var user = new ApplicationUser
+                        {
+                            FirstName = userData.FirstName,
+                            LastName = userData.LastName,
+                            Email = userData.Email,
+                            Adress = userData.Adress,
+                            PhoneNumber = userData.Phone,
+                            NormalizedUserName = userData.Email.ToUpper(),
+                            NormalizedEmail = userData.Email.ToUpper(),
+                            EmailConfirmed = true
+                        };
 
-                    await _userStore.SetUserNameAsync(user, userData.Email, CancellationToken.None);
-                    var result = await _userManager.CreateAsync(user, userData.Password);
-                    await _userManager.AddToRoleAsync(user, "Customer");
+                        await _userStore.SetUserNameAsync(user, userData.Email, CancellationToken.None);
+                        var result = await _userManager.CreateAsync(user, userData.Password);
+                        await _userManager.AddToRoleAsync(user, "Customer");
 
-                    if (result.Succeeded)
-                    {
-                        return RedirectToAction("Login");
+                        if (result.Succeeded)
+                        {
+                            return RedirectToAction("Login");
 
+                        }
+
+                        foreach (var error in result.Errors)
+                        {
+                            ModelState.AddModelError(string.Empty, error.Description);
+                        }
                     }
+                    #endregion
 
-                    foreach (var error in result.Errors)
+                    //if user with email already exist in database
+                    else
                     {
-                        ModelState.AddModelError(string.Empty, error.Description);
+                        //add error message to email key of modelstate
+                        ModelState.AddModelError(nameof(userData.Email), "E-mail already exists.");
                     }
                 }
-
-                //if user with email already exist in database
+                //if password format is incorrect
                 else
                 {
-                    //add error message to email key of modelstate
-                    ModelState.AddModelError(nameof(userData.Email), "E-mail already exists.");
+                    //add error message to password key of modelstate
+                    ModelState.AddModelError(nameof(userData.Password), "Password must include at least one capital letter, one number, and one symbol.");
                 }
             }
 
@@ -130,8 +144,8 @@ namespace BokLoftet.Controllers
 
             foreach (var character in password)
             {
-                if (char.IsUpper(character)) 
-                hasCapitalLetter = true;
+                if (char.IsUpper(character))
+                    hasCapitalLetter = true;
                 else if (char.IsDigit(character))
                     hasDigit = true;
                 else if (char.IsSymbol(character) || char.IsPunctuation(character))
