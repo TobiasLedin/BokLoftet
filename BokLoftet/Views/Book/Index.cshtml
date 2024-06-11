@@ -5,86 +5,102 @@
 }
 
 <h1>Böcker</h1>
+<div class="grid-container">
+    @foreach (var item in Model)
+    {
+        <a asp-action="Details" asp-route-id="@item.Id">
+            <div class="book-card">
+                <img src="@item.CoverImageURL" />
+                <h1>@item.Title</h1>
+                <h2>@item.Author</h2>
+            </div>
+        </a>
+        
+    }
+</div>
 
-<p>
+@*
+    <p>
     <a asp-action="Create">Lägg till bok</a>
 </p>
 <table class="table">
     <thead>
         <tr>
-            @* <th>
+            <th>
             @Html.DisplayNameFor(model => model.IsAvailable)
-            </th> *@
-            <th>
-                @Html.DisplayNameFor(model => model.CoverImageURL)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Title)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Author)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Language)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Pages)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Publisher)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.PublishYear)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.ISBN)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Description)
-            </th>
-            <th></th>
+            </th> 
+<th>
+    @Html.DisplayNameFor(model => model.CoverImageURL)
+</th>
+<th>
+    @Html.DisplayNameFor(model => model.Title)
+</th>
+<th>
+    @Html.DisplayNameFor(model => model.Author)
+</th>
+<th>
+    @Html.DisplayNameFor(model => model.Language)
+</th>
+<th>
+    @Html.DisplayNameFor(model => model.Pages)
+</th>
+<th>
+    @Html.DisplayNameFor(model => model.Publisher)
+</th>
+<th>
+    @Html.DisplayNameFor(model => model.PublishYear)
+</th>
+<th>
+    @Html.DisplayNameFor(model => model.ISBN)
+</th>
+<th>
+    @Html.DisplayNameFor(model => model.Description)
+</th>
+<th></th>
         </tr>
     </thead>
-    <tbody>
-        @foreach (var item in Model)
-        {
-            <tr>
-                @* <td>
-            @Html.DisplayFor(modelItem => item.IsAvailable)
-            </td> *@
-                <td>
-                    <img src="@Html.DisplayFor(modelItem => item.CoverImageURL)" height="150px" />
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.Title)
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.Author)
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.Language)
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.Pages)
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.Publisher)
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.PublishYear)
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.ISBN)
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.Description)
-                </td>
-                <td>
-                    <a asp-action="Edit" asp-route-id="@item.Id">Editera</a> |
-                    <a asp-action="Details" asp-route-id="@item.Id">Detaljer</a> |
-                    <a asp-action="Delete" asp-route-id="@item.Id">Ta bort</a>
-                </td>
-            </tr>
-        }
-    </tbody>
+<tbody>
+    @foreach (var item in Model)
+    {
+        <tr>
+            @* <td>
+        @Html.DisplayFor(modelItem => item.IsAvailable)
+        </td> 
+            <td>
+                <img src="@Html.DisplayFor(modelItem => item.CoverImageURL)" height="150px" />
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Title)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Author)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Language)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Pages)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Publisher)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.PublishYear)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.ISBN)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Description)
+            </td>
+            <td>
+                <a asp-action="Edit" asp-route-id="@item.Id">Editera</a> |
+                <a asp-action="Details" asp-route-id="@item.Id">Detaljer</a> |
+                <a asp-action="Delete" asp-route-id="@item.Id">Ta bort</a>
+            </td>
+        </tr>
+    }
+</tbody>
 </table>
+*@
+
